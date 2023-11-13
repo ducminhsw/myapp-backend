@@ -1,12 +1,14 @@
+const io = require('socket.io');
+
 const registerSocketServer = (server) => {
-    const io = require('socket.io')(server, {
+    const severIO = io(server, {
         cors: {
             origin: "*",
             methods: ["GET", 'POST', 'DELETE', 'PUT']
         }
     });
 
-    io.on('connection', socket => {
+    severIO.on('connection', socket => {
         console.log("Socket on:", socket);
     });
 }

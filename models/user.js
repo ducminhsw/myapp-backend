@@ -2,6 +2,14 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const userSchema = new Schema({
+    role: {
+        type: String,
+        required: true
+    },
+    username: {
+        type: String,
+        required: true
+    },
     firstName: {
         type: String,
         required: true
@@ -16,21 +24,17 @@ const userSchema = new Schema({
         unique: true
     },
     phoneNumber: {
-        type: String,
-        required: true
+        type: String
     },
     hashPassword: {
         type: String,
         required: true
     },
-    role: 'user',
     headOfGroup: {
-        type: Schema.Types.ObjectId,
-        required: true
+        type: Schema.Types.ObjectId
     },
     dateOfBirth: {
-        type: String,
-        required: true
+        type: String
     },
     banned: Boolean,
     friends: [
@@ -38,8 +42,6 @@ const userSchema = new Schema({
             type: Schema.Types.ObjectId
         }
     ]
-}, {
-    timestamps: true
 });
 
 const User = mongoose.model('user', userSchema);

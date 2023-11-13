@@ -1,5 +1,3 @@
-const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -11,27 +9,26 @@ const saltRounds = process.env.SALT_ROUNDS;
 const register = async (req, res) => {
     try {
         const { username, password, email } = req.body;
-
         // check if user exists
-        const userExists = await User.exists({ email, username });
-        if (!userExists) {
+        const userExists = await User.exists({ email: email, username: username });
+        if (userExists) {
             return res.status(409).send(handleResponse(409, "Email already in use."));
         }
 
         // check passport
-        bcrypt.hash(password, saltRounds, function (err, result) {
+        return bcrypt.hash(password, Number(saltRounds), async (err, hashPassword) => {
             if (err) {
                 console.log(err);
-                return res.status(409).send("Something went wrong");
+                return res.status(409).send(handleResponse(409, "Something went wrong"));
             }
-            const { firstName, lastName, phoneNumber, dateOfBirth } = req.body;
-            const user = User.create({
-                username,
-                hashPassword: result,
-                email,
+            const { firstName, lastName, dateOfBirth } = req.body;
+            const user = await User.create({
+                role: 'user',
+                username: username,
+                hashPassword: hashPassword,
+                email: email,
                 firstName: firstName,
                 lastName: lastName,
-                phoneNumber: phoneNumber,
                 dateOfBirth: dateOfBirth,
                 friends: []
             });
@@ -39,8 +36,8 @@ const register = async (req, res) => {
             // create jwt token
             const token = jwt.sign(
                 {
-                    userId: userExists._id,
-                    mail: userExists.email
+                    userId: user._id,
+                    mail: user.email
                 },
                 process.env.TOKEN_KEY,
                 {
@@ -51,20 +48,24 @@ const register = async (req, res) => {
                 token
             }));
         });
-
     } catch (error) {
         return res.status(500).send(handleResponse(500, "Something went wrong. Please register again!"));
     }
-}
+};
 
 const login = async (req, res) => {
+    const { email, password } = req.body;
     try {
-        const { email, password } = reb.body;
-
         // check if user exists
-        const userExists = User.findOne({ email });
-        if (userExists && (await bcrypt.compare(password, userExists.hashPassword))) {
-            // create jwt token
+        const userExists = await User.findOne({ email: email });
+        if (!userExists) return res.status(409).send(handleResponse(409, "User not found."));
+
+        // check if password is match
+        const match = await bcrypt.compare(password, userExists.hashPassword);
+        if (!match) return res.status(409).send(handleResponse(409, "Authentication failed."));
+
+        // create login token
+        try {
             const token = jwt.sign(
                 {
                     userId: userExists._id,
@@ -74,21 +75,29 @@ const login = async (req, res) => {
                 {
                     expiresIn: '24h'
                 });
-            return res.status(200).send(handleResponse(200, 'Login success', {
-                userCredentials: {
-                    username: userExists.username,
-                    email,
-                    firstName: userExists.firstName,
-                    lastName: userExists.lastName,
-                    friends: userExists.friends,
-                    token: token
-                }
-            }));
+            return res.status(200).send(handleResponse(200, 'Login success.',
+                {
+                    userCredentials: {
+                        username: userExists.username,
+                        email: userExists.email,
+                        firstName: userExists.firstName,
+                        lastName: userExists.lastName,
+                        friends: userExists.friends,
+                        token: token
+                    }
+                }));
+        } catch (error) {
+            return res.status(500).send(handleResponse(500, 'Something went wrong.'))
         }
-
-        // check if password is right
-        return res.status(409).send(handleResponse(400, "Email or password is invalid."));
     } catch (error) {
         return res.status(500).send(handleResponse(500, "Something went wrong. Please login again!"));
     }
-}
+};
+
+const verifyAccount = (req, res) => { };
+
+const changePassword = (req, res) => { };
+
+const requestPassword = (req, res) => { };
+
+module.exports = { login, register, verifyAccount, changePassword, requestPassword }
