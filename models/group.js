@@ -3,23 +3,37 @@ const { Schema } = mongoose;
 
 const groupSchema = new Schema({
     title: String,
-    creator: Schema.Types.ObjectId,
+    creator: {
+        type: Schema.Types.ObjectId,
+        ref: 'user'
+    },
+    messagePageCount: Number,
+    messagePageMax: Number,
     message: [{
-        sender: Schema.Types.ObjectId,
-        time: Date
+        messages_id: Number,
+        messages_index: Number,
+        startAt: Date,
+        messages: {
+            type: Schema.Types.ObjectId,
+            ref: 'messages'
+        },
+        messages_count: Number
     }],
     admin: [{
-        id: Schema.Types.ObjectId
+        type: Schema.Types.ObjectId,
+        ref: 'user'
+    }],
+    participants: [{
+        type: Schema.Types.ObjectId,
+        ref: 'user'
     }],
     muted: [{
-        id: Schema.Types.ObjectId,
-        reason: String,
-        expired: Date
+        type: Schema.Types.ObjectId,
+        ref: 'user'
     }],
     banned: [{
-        id: Schema.Types.ObjectId,
-        reason: String,
-        number: Int8Array
+        type: Schema.Types.ObjectId,
+        ref: 'user'
     }]
 });
 

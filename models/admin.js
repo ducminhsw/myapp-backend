@@ -2,14 +2,22 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const adminSchema = new Schema({
-    firstName: String,
-    lastName: String,
+    role: 'admin',
+    admin: {
+        type: Schema.Types.ObjectId,
+        ref: 'user',
+        required: true
+    },
     userBanned: [{
-        id: Schema.Types.ObjectId,
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
         reason: String
     }],
-    role: 'admin',
-    dateOfBirth: Date
+    dateOfBirth: {
+        type: Date | String
+    }
 }, {
     timestamps: true
 });
