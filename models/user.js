@@ -30,16 +30,20 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    headOfGroup: {
-        type: Schema.Types.ObjectId
+    headOfSever: {
+        type: Schema.Types.ObjectId,
+        ref: 'server'
     },
     dateOfBirth: {
         type: String
     },
-    banned: Boolean,
+    banned: {
+        type: Boolean,
+    },
     friends: [
         {
-            type: Schema.Types.ObjectId
+            type: Schema.Types.ObjectId,
+            ref: 'user'
         }
     ]
 });

@@ -20,7 +20,8 @@ app.use('/api/v1/myself', require('./routes/myselfRoute'));
 app.use('/api/v1/friend', require('./routes/friendRoute'));
 app.use('/api/v1/conversation', require('./routes/conversationRoute'));
 app.use('/api/v1/videocall', require('./routes/videoCallRoute'));
-app.use('/api/v1/group', require('./routes/groupRoute'));
+app.use('/api/v1/server', require('./routes/serverRoute'));
+app.use('/api/v1/channel', require('./routes/channelRoute'));
 
 const server = http.createServer(app);
 socketServer.registerSocketServer(server);

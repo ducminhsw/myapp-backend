@@ -1,23 +1,15 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const groupSchema = new Schema({
+const serverSchema = new Schema({
     title: String,
     creator: {
         type: Schema.Types.ObjectId,
         ref: 'user'
     },
-    messagePageCount: Number,
-    messagePageMax: Number,
-    message: [{
-        messages_id: Number,
-        messages_index: Number,
-        startAt: Date,
-        messages: {
-            type: Schema.Types.ObjectId,
-            ref: 'messages'
-        },
-        messages_count: Number
+    channels: [{
+        type: Schema.Types.ObjectId,
+        ref: 'channel'
     }],
     admin: [{
         type: Schema.Types.ObjectId,
@@ -37,5 +29,5 @@ const groupSchema = new Schema({
     }]
 });
 
-const Group = mongoose.model('group', groupSchema);
-module.exports = Group;
+const Server = mongoose.model('server', serverSchema);
+module.exports = Server;

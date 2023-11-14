@@ -1,14 +1,26 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const messageSchema = new Schema({
+const channelSchema = new Schema({
+    channel_name: {
+        type: String,
+        required: true
+    },
+    member: [{
+        type: Schema.Types.ObjectId,
+        ref: 'user'
+    }],
+    channel_type: {
+        type: Number,
+        required: true
+    },
     messages: [{
         page_id: Number,
         page_index: Number,
         message_max: Number,
         startAt: Date,
         message_count: Number,
-        messages: [{
+        message: [{
             content: {
                 type: String,
                 required: true
@@ -27,5 +39,5 @@ const messageSchema = new Schema({
     ]
 });
 
-const Message = mongoose.model('messages', messageSchema);
-module.exports = Message;
+const Channel = mongoose.model('channel', channelSchema);
+module.exports = Channel;

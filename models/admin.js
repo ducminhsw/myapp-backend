@@ -13,7 +13,10 @@ const adminSchema = new Schema({
             type: Schema.Types.ObjectId,
             ref: 'user'
         },
-        reason: String
+        reason: {
+            type: String,
+            required: true
+        }
     }],
     dateOfBirth: {
         type: Date | String
