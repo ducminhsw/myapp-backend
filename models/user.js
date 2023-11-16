@@ -18,6 +18,9 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
+    avatar: {
+        type: String
+    },
     email: {
         type: String,
         required: true,
@@ -36,6 +39,10 @@ const userSchema = new Schema({
     },
     dateOfBirth: {
         type: String
+    },
+    verified: {
+        type: Boolean,
+        required: true
     },
     banned: {
         type: Boolean,

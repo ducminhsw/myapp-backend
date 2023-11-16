@@ -26,6 +26,7 @@ const register = async (req, res) => {
                 role: 'user',
                 username: username,
                 hashPassword: hashPassword,
+                verified: false,
                 email: email,
                 firstName: firstName,
                 lastName: lastName,
@@ -94,10 +95,57 @@ const login = async (req, res) => {
     }
 };
 
-const verifyAccount = (req, res) => { };
+// verify account after register
+const verifyAccount = async (req, res) => {
+    const { email, username, token } = req.body;
 
+    if (!token) {
+        return res.status(401).send(handleResponse(401, "User not signed in yet."));
+    }
+
+    const user = await User.findOne({ email: email, username: username });
+
+    if (!user) {
+        return res.status(401).send(handleResponse(401, "User does not exists."));
+    }
+
+    try {
+        await user.save();
+        return res.status(201).send(handleResponse(201, "User verified successfully.", user));
+    } catch (error) {
+        console.log(error);
+        return res.status(500).send(handleResponse(500, "Something went wrong."));
+    }
+};
+
+const deleteAccount = async (res, res) => {
+    const { tokenCredential } = req;
+    if (!tokenCredential) {
+        return res.status(401).send(handleResponse(401, "User is not authenticated."));
+    }
+
+    const { username, email } = req.body;
+    if (!username || !email) {
+        return res.status(400).send(handleResponse(400, "Invalid user information"));
+    }
+
+    const user = await User.findOne({ email: email, username: username });
+    if (!user) {
+        return res.status(400).send(handleResponse(400, "User is invalid"));
+    }
+
+    try {
+        const deletedUser = await User.deleteOne(user);
+        return res.status(200).send(handleResponse(200, "Delete user success.", deletedUser));
+    } catch (error) {
+        return res.status(500).send(handleResponse(500, "Something went wrong."));
+    }
+}
+
+// change password
 const changePassword = (req, res) => { };
 
+// request password after forgot password
 const requestPassword = (req, res) => { };
 
-module.exports = { login, register, verifyAccount, changePassword, requestPassword }
+module.exports = { login, register, verifyAccount, deleteAccount, changePassword, requestPassword }
