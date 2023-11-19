@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 const { handleResponse } = require('../utils/utilsfunc');
+const { configJwtSignObject } = require('../middlewares/authMiddleware');
 
 const saltRounds = process.env.SALT_ROUNDS;
 
@@ -34,12 +35,11 @@ const register = async (req, res) => {
                 friends: []
             });
 
+            await user.save();
+
             // create jwt token
             const token = jwt.sign(
-                {
-                    userId: user._id,
-                    mail: user.email
-                },
+                configJwtSignObject(user),
                 process.env.TOKEN_KEY,
                 {
                     expiresIn: '24h'
@@ -68,10 +68,7 @@ const login = async (req, res) => {
         // create login token
         try {
             const token = jwt.sign(
-                {
-                    userId: userExists._id,
-                    mail: userExists.email
-                },
+                configJwtSignObject(userExists),
                 process.env.TOKEN_KEY,
                 {
                     expiresIn: '24h'
@@ -103,6 +100,10 @@ const verifyAccount = async (req, res) => {
         return res.status(401).send(handleResponse(401, "User not signed in yet."));
     }
 
+    if (typeof email !== 'string' || typeof username !== 'string') {
+        return res.status(401).send(handleResponse(401, "Invalid authentication input."));
+    }
+
     const user = await User.findOne({ email: email, username: username });
 
     if (!user) {
@@ -118,7 +119,7 @@ const verifyAccount = async (req, res) => {
     }
 };
 
-const deleteAccount = async (res, res) => {
+const deleteAccount = async (req, res) => {
     const { tokenCredential } = req;
     if (!tokenCredential) {
         return res.status(401).send(handleResponse(401, "User is not authenticated."));

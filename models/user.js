@@ -44,6 +44,15 @@ const userSchema = new Schema({
         type: Boolean,
         required: true
     },
+    storyNow: {
+        type: {
+            content: { type: String },
+            dateOfStory: { type: Date }
+        }
+    },
+    stories: [{
+        type: String,
+    }],
     banned: {
         type: Boolean,
     },

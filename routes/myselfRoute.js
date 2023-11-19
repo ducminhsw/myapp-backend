@@ -14,7 +14,7 @@ route.route('/scprofile').get(getSecreteProfile)
     .put(putSecretProfile);
 
 // story
-route.route('/story').get(getStory)
+route.route('/story')
     .post(postStory)
     .delete(deleteStory);
 

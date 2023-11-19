@@ -5,12 +5,12 @@ const registerSocketServer = (server) => {
     const serverIO = new Server(server, {
         cors: {
             origin: "*",
-            methods: ["GET", 'POST', 'DELETE', 'PUT']
+            methods: ['GET', 'POST', 'DELETE', 'PUT']
         }
     });
 
     serverIO.on('connect', socket => {
-        console.log("Socket on:", socket);
+        console.log('Socket on:', socket);
     });
 };
 
