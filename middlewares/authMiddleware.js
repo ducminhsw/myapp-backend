@@ -37,6 +37,7 @@ const configJwtSignObject = (user) => {
     const obj = {
         userId: user._id,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         verified: user.verified,
         firstName: user.firstName,
         lastName: user.lastName
