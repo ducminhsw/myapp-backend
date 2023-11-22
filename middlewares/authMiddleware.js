@@ -26,7 +26,7 @@ const verifyToken = (req, res, next) => {
             return res.status(401).send(401, "Not authenticated.");
         }
 
-        req.tokenCredential = decodedToken;
+        req.decodedToken = decodedToken;
         return next();
     } catch (error) {
         return res.status(403).send(handleResponse(403, "Something went wrong."));

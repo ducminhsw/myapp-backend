@@ -19,19 +19,8 @@ const conversationSchema = new Schema({
         required: true
     },
     message: [{
-        content: {
-            type: String,
-            required: true
-        },
-        sender: {
-            type: Schema.Types.ObjectId,
-            ref: 'user',
-            required: true
-        },
-        sentAt: {
-            type: Date,
-            required: true
-        }
+        type: Schema.Types.ObjectId,
+        ref: 'message'
     }],
     mediaFile: [{
         sender: {

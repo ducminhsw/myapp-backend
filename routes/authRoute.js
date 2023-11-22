@@ -4,8 +4,10 @@ const { register, login, verifyAccount, deleteAccount } = require('../controller
 const { verifyToken } = require('../middlewares/authMiddleware');
 
 route.post('/register', register);
-route.use(verifyToken);
 route.post('/login', login);
+
+route.use(verifyToken);
+
 route.post('/verifyAccount', verifyAccount);
 route.delete('/account', deleteAccount);
 

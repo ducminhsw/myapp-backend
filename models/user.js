@@ -45,10 +45,8 @@ const userSchema = new Schema({
         required: true
     },
     storyNow: {
-        type: {
-            content: { type: String },
-            dateOfStory: { type: Date }
-        }
+        content: { type: String },
+        dateOfStory: { type: Date, default: Date.now }
     },
     stories: [{
         type: String,

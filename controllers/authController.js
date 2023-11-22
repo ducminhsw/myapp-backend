@@ -94,11 +94,7 @@ const login = async (req, res) => {
 
 // verify account after register
 const verifyAccount = async (req, res) => {
-    const { email, username, token } = req.body;
-
-    if (!token) {
-        return res.status(401).send(handleResponse(401, "User not signed in yet."));
-    }
+    const { email, username } = req.body;
 
     if (typeof email !== 'string' || typeof username !== 'string') {
         return res.status(401).send(handleResponse(401, "Invalid authentication input."));
@@ -120,18 +116,17 @@ const verifyAccount = async (req, res) => {
 };
 
 const deleteAccount = async (req, res) => {
-    const { tokenCredential } = req;
-    if (!tokenCredential) {
-        return res.status(401).send(handleResponse(401, "User is not authenticated."));
-    }
-
     const { username, email } = req.body;
     if (!username || !email) {
         return res.status(400).send(handleResponse(400, "Invalid user information"));
     }
 
-    const user = await User.findOne({ email: email, username: username });
+    const user = await User.findOne({ email: email });
     if (!user) {
+        return res.status(400).send(handleResponse(400, "User is invalid"));
+    }
+
+    if (user.username !== username) {
         return res.status(400).send(handleResponse(400, "User is invalid"));
     }
 

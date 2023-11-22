@@ -22,22 +22,14 @@ const channelSchema = new Schema({
         page_id: Number,
         page_index: Number,
         message_max: Number,
-        startAt: Date,
+        startAt: {
+            type: Date,
+            default: Date.now
+        },
         message_count: Number,
         message: [{
-            content: {
-                type: String,
-                required: true
-            },
-            sender: {
-                type: Schema.Types.ObjectId,
-                ref: 'user',
-                required: true
-            },
-            sentAt: {
-                type: Date,
-                required: true
-            }
+            type: Schema.Types.ObjectId,
+            ref: 'message'
         }]
     }
     ]
