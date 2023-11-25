@@ -2,16 +2,35 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const conversationSchema = new Schema({
-    _id: String,
-    firstUser: Schema.Types.ObjectId,
-    secondUser: Schema.Types.ObjectId,
+    firstUser: {
+        type: Schema.Types.ObjectId,
+        required: true
+    },
+    firstUserName: {
+        type: String,
+        required: true
+    },
+    secondUser: {
+        type: Schema.Types.ObjectId,
+        required: true
+    },
+    secondUserName: {
+        type: String,
+        required: true
+    },
     message: [{
-        id: Schema.Types.ObjectId,
-        content: String
+        type: Schema.Types.ObjectId,
+        ref: 'message'
     }],
     mediaFile: [{
-        id: String,
-        content: ImageBitmap | VideoEncoder,
+        sender: {
+            type: Schema.Types.ObjectId,
+            required: true
+        },
+        content: {
+            type: String,
+            required: true
+        },
     }]
 });
 

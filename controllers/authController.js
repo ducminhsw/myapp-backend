@@ -2,7 +2,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
-const { handleResponse } = require('../utils/utilsfunc');
+const { handleResponse, invalidParameterErrorResponse, handleConvertResponse, serverErrorResponse, serverConflictError } = require('../utils/utilsfunc');
+const { configJwtSignObject } = require('../middlewares/authMiddleware');
 
 const saltRounds = process.env.SALT_ROUNDS;
 
@@ -12,20 +13,21 @@ const register = async (req, res) => {
         // check if user exists
         const userExists = await User.exists({ email: email, username: username });
         if (userExists) {
-            return res.status(409).send(handleResponse(409, "Email already in use."));
+            return serverConflictError(res);
         }
 
         // check passport
         return bcrypt.hash(password, Number(saltRounds), async (err, hashPassword) => {
             if (err) {
                 console.log(err);
-                return res.status(409).send(handleResponse(409, "Something went wrong"));
+                return serverConflictError(res);
             }
             const { firstName, lastName, dateOfBirth } = req.body;
             const user = await User.create({
                 role: 'user',
                 username: username,
                 hashPassword: hashPassword,
+                verified: false,
                 email: email,
                 firstName: firstName,
                 lastName: lastName,
@@ -33,44 +35,41 @@ const register = async (req, res) => {
                 friends: []
             });
 
+            await user.save();
+
             // create jwt token
             const token = jwt.sign(
-                {
-                    userId: user._id,
-                    mail: user.email
-                },
+                configJwtSignObject(user),
                 process.env.TOKEN_KEY,
                 {
                     expiresIn: '24h'
                 });
-            return res.status(201).send(handleResponse(201, "Create user success", {
+            return handleConvertResponse(res, 201, "Create user success", {
                 userCredentials: user,
                 token
-            }));
+            });
         });
     } catch (error) {
-        return res.status(500).send(handleResponse(500, "Something went wrong. Please register again!"));
+        return serverErrorResponse(res);
     }
 };
 
 const login = async (req, res) => {
+    console.log(req.params);
     const { email, password } = req.body;
     try {
         // check if user exists
         const userExists = await User.findOne({ email: email });
-        if (!userExists) return res.status(409).send(handleResponse(409, "User not found."));
+        if (!userExists) return serverConflictError(res);
 
         // check if password is match
         const match = await bcrypt.compare(password, userExists.hashPassword);
-        if (!match) return res.status(409).send(handleResponse(409, "Authentication failed."));
+        if (!match) return serverConflictError(res);
 
         // create login token
         try {
             const token = jwt.sign(
-                {
-                    userId: userExists._id,
-                    mail: userExists.email
-                },
+                configJwtSignObject(userExists),
                 process.env.TOKEN_KEY,
                 {
                     expiresIn: '24h'
@@ -87,17 +86,60 @@ const login = async (req, res) => {
                     }
                 }));
         } catch (error) {
-            return res.status(500).send(handleResponse(500, 'Something went wrong.'))
+            return serverErrorResponse(res);
         }
     } catch (error) {
-        return res.status(500).send(handleResponse(500, "Something went wrong. Please login again!"));
+        return serverErrorResponse(res);
     }
 };
 
-const verifyAccount = (req, res) => { };
+// verify account after register
+const verifyAccount = async (req, res) => {
+    const { email } = req.body;
 
+    if (typeof email !== 'string') {
+        return res.status(401).send(handleResponse(401, "Invalid authentication input."));
+    }
+
+    const user = await User.findOne({ email: email });
+
+    if (!user) {
+        return res.status(401).send(handleResponse(401, "User does not exists."));
+    }
+
+    try {
+        user.verified = true;
+        await user.save();
+        return handleConvertResponse(res);
+    } catch (error) {
+        console.log(error);
+        return serverErrorResponse(res);
+    }
+};
+
+const deleteAccount = async (req, res) => {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+        return invalidParameterErrorResponse(res);
+    }
+
+    const user = await User.findOne({ email: email });
+    if (!user) {
+        return invalidParameterErrorResponse(res);
+    }
+
+    try {
+        const deletedUser = await User.deleteOne(user);
+        return handleConvertResponse(res, 202, deletedUser);
+    } catch (error) {
+        return serverErrorResponse(res);
+    }
+}
+
+// change password
 const changePassword = (req, res) => { };
 
+// request password after forgot password
 const requestPassword = (req, res) => { };
 
-module.exports = { login, register, verifyAccount, changePassword, requestPassword }
+module.exports = { login, register, verifyAccount, deleteAccount, changePassword, requestPassword }

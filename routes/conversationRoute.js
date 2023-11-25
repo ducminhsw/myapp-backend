@@ -1,17 +1,13 @@
 const express = require('express');
 const route = express.Router();
 
+// POST create/start a conversation
+route.post('/start')
+
 // GET list message
-route.get('/list')
+route.get('/list/:block')
 
-// DELETE a conversation
-route.delete('/delete')
-
-// POST create a conversation
-route.post('/create')
-
-// PUT block a conversation
-route.put('/block')
+// 
 
 // PUT update information a conversation
 route.put('/update')

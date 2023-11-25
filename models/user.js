@@ -18,6 +18,9 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
+    avatar: {
+        type: String
+    },
     email: {
         type: String,
         required: true,
@@ -30,18 +33,45 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    headOfGroup: {
-        type: Schema.Types.ObjectId
-    },
+    headOfSever: [{
+        server: {
+            type: Schema.Types.ObjectId,
+            ref: 'server'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
+    }],
     dateOfBirth: {
         type: String
     },
-    banned: Boolean,
-    friends: [
-        {
-            type: Schema.Types.ObjectId
+    verified: {
+        type: Boolean,
+        required: true
+    },
+    storyNow: {
+        content: { type: String },
+        dateOfStory: { type: Date, default: Date.now }
+    },
+    stories: [{
+        story: {
+            type: String
         }
-    ]
+    }],
+    banned: {
+        type: Boolean,
+    },
+    friends: [{
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
+    }]
 });
 
 const User = mongoose.model('user', userSchema);
