@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { handleResponse } = require("../utils/utilsfunc");
+const { handleResponse, serverErrorResponse } = require("../utils/utilsfunc");
 
 const config = process.env;
 
@@ -14,20 +14,24 @@ const verifyToken = (req, res, next) => {
     // get the credential out of the token
     try {
         token = token.replace(/^Bearer\s+/, "");
-        const decodedToken = jwt.verify(token, config.TOKEN_KEY, function (err, decoded) {
+        jwt.verify(token, config.TOKEN_KEY, function (err, decodedToken) {
             if (err) {
                 console.log(err);
                 return;
             }
-            return decoded;
+            console.log('decodedToken', decodedToken);
+
+            if (!decodedToken) {
+                return res.status(401).send(401, "Not authenticated.");
+            }
+
+            try {
+                req.decodedToken = decodedToken;
+                next();
+            } catch (error) {
+                return serverErrorResponse(res);
+            }
         });
-
-        if (!decodedToken) {
-            return res.status(401).send(401, "Not authenticated.");
-        }
-
-        req.decodedToken = decodedToken;
-        return next();
     } catch (error) {
         return res.status(403).send(handleResponse(403, "Something went wrong."));
     }

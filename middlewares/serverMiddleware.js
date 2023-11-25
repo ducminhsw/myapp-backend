@@ -13,22 +13,22 @@ const verifiedServerInfo = async (req, res, next) => {
         return invalidParameterErrorResponse(res);
     }
 
-    const creator = await User.findById(userId, (err, doc) => {
+    const user = await User.findById(userId, (err, userDoc) => {
         if (err) {
             return;
         }
-        return doc;
+        return userDoc;
     });
 
-    if (!creator) {
+    if (!user) {
         return invalidParameterErrorResponse(res, 404, 'Not found');
     }
 
-    const server = await Server.findById(serverId, (err, doc) => {
+    const server = await Server.findById(serverId, (err, serverDoc) => {
         if (err) {
             return;
         }
-        return doc;
+        return serverDoc;
     });
 
     if (!server) {
@@ -36,8 +36,8 @@ const verifiedServerInfo = async (req, res, next) => {
     }
 
     try {
-        req.server = server;
-        req.creator = creator;
+        req.serverMongo = server;
+        req.userRequest = user;
         next();
     } catch (error) {
         return serverErrorResponse(res);

@@ -87,6 +87,14 @@ const handleConvertResponse = (res, responseCode = 200, message = "Success", dat
     });
 }
 
+const serverConflictError = (res, code = 409, message = "Conflict server") => {
+    return res.status(code).send({
+        code: code,
+        message: message,
+        data: null
+    });
+}
+
 const serverErrorResponse = (res, code = 500, message = "Something went wrong") => {
     return res.status(code).send({
         code: code,
@@ -119,4 +127,4 @@ const notFoundErrorResponse = (res, code = 404, message = "Not found") => {
     });
 }
 
-module.exports = { responseCode, handleResponse, handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse, invalidParameterErrorResponse, notFoundErrorResponse };
+module.exports = { responseCode, handleResponse, handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse, invalidParameterErrorResponse, notFoundErrorResponse, serverConflictError };

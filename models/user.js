@@ -33,10 +33,16 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    headOfSever: {
-        type: Schema.Types.ObjectId,
-        ref: 'server'
-    },
+    headOfSever: [{
+        server: {
+            type: Schema.Types.ObjectId,
+            ref: 'server'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
+    }],
     dateOfBirth: {
         type: String
     },
@@ -49,17 +55,23 @@ const userSchema = new Schema({
         dateOfStory: { type: Date, default: Date.now }
     },
     stories: [{
-        type: String,
+        story: {
+            type: String
+        }
     }],
     banned: {
         type: Boolean,
     },
-    friends: [
-        {
+    friends: [{
+        user: {
             type: Schema.Types.ObjectId,
             ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
         }
-    ]
+    }]
 });
 
 const User = mongoose.model('user', userSchema);

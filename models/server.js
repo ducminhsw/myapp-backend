@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { SERVER_TYPE } = require('../utils/contants');
 const { Schema } = mongoose;
 
 const serverSchema = new Schema({
@@ -6,29 +7,69 @@ const serverSchema = new Schema({
         type: String,
         required: true
     },
-    creator: {
-        type: Schema.Types.ObjectId,
-        ref: 'user'
+    headOfServer: [{
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
+    }],
+    type: {
+        type: Number,
+        required: true
     },
     channels: [{
-        type: Schema.Types.ObjectId,
-        ref: 'channel'
-    }],
-    admin: [{
-        type: Schema.Types.ObjectId,
-        ref: 'user'
+        channel: {
+            type: Schema.Types.ObjectId,
+            ref: 'channel'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
     }],
     participants: [{
-        type: Schema.Types.ObjectId,
-        ref: 'user'
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
+    }],
+    joinRequest: [{
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
     }],
     muted: [{
-        type: Schema.Types.ObjectId,
-        ref: 'user'
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
     }],
     banned: [{
-        type: Schema.Types.ObjectId,
-        ref: 'user'
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
     }]
 });
 

@@ -1,49 +1,61 @@
 const Channel = require("../models/channel");
 const Server = require("../models/server");
 const User = require("../models/user");
-const { CHANNEL_TYPE } = require("../utils/contants");
-const { handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse, invalidParameterErrorResponse, notFoundErrorResponse } = require("../utils/utilsfunc");
+const { CHANNEL_TYPE, SERVER_TYPE } = require("../utils/contants");
+const { handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse, invalidParameterErrorResponse, notFoundErrorResponse, serverConflictError } = require("../utils/utilsfunc");
 
 const createServer = async (req, res) => {
-    const { tokenCredential } = req;
-
-    if (!tokenCredential || typeof tokenCredential !== 'object') {
-        return handleConvertResponse(res, 401, 'User not authenticated.');
+    const { userId, email, verified, typeServer } = req.body;
+    if (!userId || typeof userId !== 'string') {
+        return invalidParameterErrorResponse(res);
     }
 
-    const { userId, email, verified } = tokenCredential;
-    if (!userId) {
-        return handleConvertResponse(res, 401, 'Invalid user id.');
+    if (!email || typeof email !== 'string') {
+        return invalidParameterErrorResponse(res);
     }
 
-    if (!email) {
-        return handleConvertResponse(res, 401, 'Invalid email.');
-    }
-
-    if (!verified) {
+    if (!verified || typeof verified !== 'string') {
         return handleConvertResponse(res, 401, 'User not verified, can not create a server.');
+    }
+
+    if (!typeServer || typeof typeServer !== 'number') {
+        return invalidParameterErrorResponse(res);
     }
 
     const user = await User.findOne({ _id: userId, email: email });
     if (!user) {
-        return handleConvertResponse(res, 401, 'User is invalid.');
+        return notFoundErrorResponse(res);
     }
 
     try {
-        const newChannels = await Channel.create({
+        const newChannel = await Channel.create({
             channel_name: 'general',
-            creator: [user._id],
-            member: [user._id],
+            headOfChannel: [{
+                user: user._id
+            }],
+            member: [{
+                user: user._id
+            }],
             channel_type: CHANNEL_TYPE.CHAT,
             messages: []
         });
 
         const server = await Server.create({
             title: 'server',
-            creator: user._id,
-            channels: [newChannels._id],
-            admin: [user._id],
-            participants: [user._id],
+            headOfServer: [{
+                user: user._id
+            }],
+            type: typeServer,
+            channels: [{
+                channel: newChannel._id
+            }],
+            admin: [{
+                user: user._id
+            }],
+            participants: [{
+                user: user._id
+            }],
+            joinRequest: [],
             muted: [],
             banned: []
         });
@@ -55,83 +67,148 @@ const createServer = async (req, res) => {
     }
 }
 
-const deleteServer = async (req, res) => {
-    const { tokenCredential } = req;
-    if (!tokenCredential || typeof tokenCredential !== 'object') {
+const getServerInformation = async (req, res) => {
+    const { userRequest, serverMongo } = req;
+
+    if (!userRequest || !serverMongo) {
         return unauthorizeErrorResponse(res);
     }
 
-    const { userId, serverId } = req.body;
-    if (!userId || typeof userId !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-    if (!serverId || typeof serverId !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    const creator = await User.findById(userId, (err, doc) => {
-        if (err) {
-            return invalidParameterErrorResponse(res, 404);
-        }
-        return doc;
-    });
-    if (!creator) {
-        return invalidParameterErrorResponse(res, 404, 'Not found');
-    }
-
-    const server = await server.findById(serverId, (err, doc) => {
-        if (err) {
-            return invalidParameterErrorResponse(res, 404);
-        }
-        return doc;
-    });
-    if (!server) {
-        return invalidParameterErrorResponse(res, 404, 'Not found.');
-    }
-
-    if (server.creator !== creator._id) {
-        return unauthorizeErrorResponse(res, 405, 'Method not allowed.');
-    }
-
-    Server.findByIdAndDelete(serverId, (err, doc) => {
-        if (err) {
-            console.log(err);
-            return serverErrorResponse(res);
-        }
-        return handleConvertResponse(res, 200, 'Delete success.', doc);
-    });
-}
-
-const getServerInformation = async (req, res) => {
-    const { userId, serverId } = req.body;
-    if (!userId || typeof userId !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    if (!serverId || typeof serverId !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
     try {
-        const user = await User.findById(userId);
-        if (!user) {
-            return notFoundErrorResponse(res);
-        }
-
-        const server = await Server.findById(serverId);
-        if (!server) {
-            return notFoundErrorResponse(res);
-        }
-
-        return handleConvertResponse(res, 200, 'Success', server);
+        return handleConvertResponse(res, 200, "Success", serverMongo);
     } catch (error) {
         console.log(err);
         return serverErrorResponse(res);
     }
 }
 
-const editServerInformation = (req, res) => {
-    const { userId, serverId } = req.body;
+const requestJoinServer = async (req, res) => {
+    const { userRequest, serverMongo } = req;
+
+    if (!userRequest || !serverMongo) {
+        return unauthorizeErrorResponse(res);
+    }
+
+    try {
+        if (serverMongo.type === SERVER_TYPE.PUBLIC) {
+            serverMongo.participants.push({ user: userRequest._id, createAt: Date.now() });
+            serverMongo.save();
+            return handleConvertResponse(res);
+        }
+        if (serverMongo.type === SERVER_TYPE.PRIVATE) {
+            serverMongo.requestJoinServer.push({ user: userRequest._id, createAt: Date.now() });
+            serverMongo.save();
+            return handleConvertResponse(res, 200, 'Send request join server successed.');
+        }
+        return invalidParameterErrorResponse(res, 404, "Invalid server type.");
+    } catch (error) {
+        console.log(error);
+        return serverErrorResponse(res);
+    }
 }
 
-module.exports = { createServer, deleteServer, getServerInformation, editServerInformation };
+const acceptUserJoin = async (req, res) => {
+
+}
+
+const requestLeaveServer = async (req, res) => {
+    const { userRequest, serverMongo } = req;
+
+    if (!userRequest || !serverMongo) {
+        return unauthorizeErrorResponse(res);
+    }
+
+    try {
+        // if user is headOfServer
+        let index = serverMongo.headOfServer.findIndex(item => item.user === userRequest._id);
+        if (index >= 0) {
+            return handleConvertResponse(res, 403, "You are the one of the server headers. If you really want to leave, resign your position first.");
+        }
+
+        // if user is a participants
+        index = serverMongo.participants.findIndex(item => item.user === userRequest._id);
+        if (index < 0) {
+            return unauthorizeErrorResponse(res, 401, "User is not in the server");
+        }
+
+        // cut the participants down
+        serverMongo.participants.splice(index, 1);
+        await serverMongo.save();
+        return handleConvertResponse(res);
+    } catch (error) {
+        console.log(error);
+        return serverErrorResponse(res);
+    }
+}
+
+const resignServerPosition = async (req, res) => {
+    const { userRequest, serverMongo } = req;
+
+    if (!userRequest || !serverMongo) {
+        return unauthorizeErrorResponse(res);
+    }
+
+    try {
+        // if user is headOfServer
+        let index = serverMongo.headOfServer.findIndex(item => item.user === userRequest._id);
+        if (index < 0) {
+            return handleConvertResponse(res, 403, "You are not one of the server headers. Youn can not resgin.");
+        }
+
+        serverMongo.headOfServer.splice(index, 1);
+        serverMongo.participants.push({ user: userRequest._id });
+        await serverMongo.save();
+        return handleConvertResponse(res);
+    } catch (error) {
+        console.log(error);
+        return serverErrorResponse(res);
+    }
+}
+
+const deleteUserInServer = async (req, res) => {
+    const { userRequest, serverMongo } = req;
+
+    if (!userRequest || !serverMongo) {
+        return unauthorizeErrorResponse(res);
+    }
+
+    const deleteUserId = req.params.user_id;
+    const deleteUser = await User.findById(deleteUserId);
+    if (!deleteUser) {
+        return notFoundErrorResponse(res);
+    }
+
+    let target;
+
+    try {
+        // request user is a head of server
+        const indexHead = serverMongo.headOfServer.findIndex(item => item.user === userRequest._id);
+        if (indexHead >= 0) {
+            // target user is a head of server
+            target = serverMongo.headOfServer.findIndex(item => item.user === deleteUser._id);
+            if (target >= 0) {
+                return serverConflictError(res, 409, "You can not delete a head of server");
+            }
+
+            // target user is a normal guy
+            target = serverMongo.participants.findIndex(item => item.user === deleteUser._id);
+            if (target >= 0) {
+                serverMongo.participants.splice(target, 1);
+                await serverMongo.save();
+                return handleConvertResponse(res);
+            }
+
+            return serverConflictError(res, 409, "Can not find the target user");
+        }
+
+        // request user is a normal guy
+        return unauthorizeErrorResponse(res, 403, "You can not do this without permission.");
+    } catch (error) {
+        return serverErrorResponse(res);
+    }
+}
+
+// pending
+const editServerInformation = async (req, res) => { }
+
+module.exports = { createServer, getServerInformation, requestJoinServer, editServerInformation, requestLeaveServer, resignServerPosition, deleteUserInServer, acceptUserJoin };

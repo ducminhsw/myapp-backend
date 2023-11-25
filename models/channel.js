@@ -6,13 +6,25 @@ const channelSchema = new Schema({
         type: String,
         required: true
     },
-    creator: {
-        type: Schema.Types.ObjectId,
-        ref: 'user'
-    },
+    headOfChannel: [{
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
+    }],
     member: [{
-        type: Schema.Types.ObjectId,
-        ref: 'user'
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'user'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
     }],
     channel_type: {
         type: Number,
@@ -28,8 +40,14 @@ const channelSchema = new Schema({
         },
         message_count: Number,
         message: [{
-            type: Schema.Types.ObjectId,
-            ref: 'message'
+            message: {
+                type: Schema.Types.ObjectId,
+                ref: 'message'
+            },
+            sentAt: {
+                type: Date,
+                default: Date.now()
+            }
         }]
     }
     ]

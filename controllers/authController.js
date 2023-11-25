@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
-const { handleResponse } = require('../utils/utilsfunc');
+const { handleResponse, invalidParameterErrorResponse, handleConvertResponse, serverErrorResponse, serverConflictError } = require('../utils/utilsfunc');
 const { configJwtSignObject } = require('../middlewares/authMiddleware');
 
 const saltRounds = process.env.SALT_ROUNDS;
@@ -13,14 +13,14 @@ const register = async (req, res) => {
         // check if user exists
         const userExists = await User.exists({ email: email, username: username });
         if (userExists) {
-            return res.status(409).send(handleResponse(409, "Email already in use."));
+            return serverConflictError(res);
         }
 
         // check passport
         return bcrypt.hash(password, Number(saltRounds), async (err, hashPassword) => {
             if (err) {
                 console.log(err);
-                return res.status(409).send(handleResponse(409, "Something went wrong"));
+                return serverConflictError(res);
             }
             const { firstName, lastName, dateOfBirth } = req.body;
             const user = await User.create({
@@ -44,26 +44,27 @@ const register = async (req, res) => {
                 {
                     expiresIn: '24h'
                 });
-            return res.status(201).send(handleResponse(201, "Create user success", {
+            return handleConvertResponse(res, 201, "Create user success", {
                 userCredentials: user,
                 token
-            }));
+            });
         });
     } catch (error) {
-        return res.status(500).send(handleResponse(500, "Something went wrong. Please register again!"));
+        return serverErrorResponse(res);
     }
 };
 
 const login = async (req, res) => {
+    console.log(req.params);
     const { email, password } = req.body;
     try {
         // check if user exists
         const userExists = await User.findOne({ email: email });
-        if (!userExists) return res.status(409).send(handleResponse(409, "User not found."));
+        if (!userExists) return serverConflictError(res);
 
         // check if password is match
         const match = await bcrypt.compare(password, userExists.hashPassword);
-        if (!match) return res.status(409).send(handleResponse(409, "Authentication failed."));
+        if (!match) return serverConflictError(res);
 
         // create login token
         try {
@@ -85,56 +86,53 @@ const login = async (req, res) => {
                     }
                 }));
         } catch (error) {
-            return res.status(500).send(handleResponse(500, 'Something went wrong.'))
+            return serverErrorResponse(res);
         }
     } catch (error) {
-        return res.status(500).send(handleResponse(500, "Something went wrong. Please login again!"));
+        return serverErrorResponse(res);
     }
 };
 
 // verify account after register
 const verifyAccount = async (req, res) => {
-    const { email, username } = req.body;
+    const { email } = req.body;
 
-    if (typeof email !== 'string' || typeof username !== 'string') {
+    if (typeof email !== 'string') {
         return res.status(401).send(handleResponse(401, "Invalid authentication input."));
     }
 
-    const user = await User.findOne({ email: email, username: username });
+    const user = await User.findOne({ email: email });
 
     if (!user) {
         return res.status(401).send(handleResponse(401, "User does not exists."));
     }
 
     try {
+        user.verified = true;
         await user.save();
-        return res.status(201).send(handleResponse(201, "User verified successfully.", user));
+        return handleConvertResponse(res);
     } catch (error) {
         console.log(error);
-        return res.status(500).send(handleResponse(500, "Something went wrong."));
+        return serverErrorResponse(res);
     }
 };
 
 const deleteAccount = async (req, res) => {
-    const { username, email } = req.body;
-    if (!username || !email) {
-        return res.status(400).send(handleResponse(400, "Invalid user information"));
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+        return invalidParameterErrorResponse(res);
     }
 
     const user = await User.findOne({ email: email });
     if (!user) {
-        return res.status(400).send(handleResponse(400, "User is invalid"));
-    }
-
-    if (user.username !== username) {
-        return res.status(400).send(handleResponse(400, "User is invalid"));
+        return invalidParameterErrorResponse(res);
     }
 
     try {
         const deletedUser = await User.deleteOne(user);
-        return res.status(200).send(handleResponse(200, "Delete user success.", deletedUser));
+        return handleConvertResponse(res, 202, deletedUser);
     } catch (error) {
-        return res.status(500).send(handleResponse(500, "Something went wrong."));
+        return serverErrorResponse(res);
     }
 }
 
