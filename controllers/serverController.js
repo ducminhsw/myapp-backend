@@ -108,7 +108,37 @@ const requestJoinServer = async (req, res) => {
 }
 
 const acceptUserJoin = async (req, res) => {
+    const { userRequest, serverMongo } = req;
 
+    if (!userRequest || !serverMongo) {
+        return unauthorizeErrorResponse(res);
+    }
+
+    const requestJoinUserId = req.params.user_id;
+    const requestJoinUser = await User.findById(requestJoinUserId);
+    if (!requestJoinUser) {
+        return notFoundErrorResponse(res);
+    }
+
+    try {
+        // if user is head of server
+        let headServerIndex = serverMongo.headOfServer.findIndex(item => item.user === userRequest._id);
+        if (headServerIndex < 0) {
+            return unauthorizeErrorResponse(res, 403, "You do not have permission to do this action.");
+        }
+
+        const joinIndex = serverMongo.joinRequest.findIndex(item => item.user === requestJoinUser._id);
+        if (joinIndex < 0) {
+            return notFoundErrorResponse(res);
+        }
+        serverMongo.joinRequest.splice(joinIndex, 1);
+        serverMongo.participants.push(requestJoinUser._id);
+        await serverMongo.save();
+        return handleConvertResponse(res);
+    } catch (error) {
+        console.log('error', error);
+        return serverErrorResponse(res);
+    }
 }
 
 const requestLeaveServer = async (req, res) => {

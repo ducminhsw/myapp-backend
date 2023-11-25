@@ -10,6 +10,7 @@ route.use(verifyToken);
 // create server
 route.post('/new', createServer);
 
+// middleware verify valid user send request and target server
 route.use(verifiedServerInfo);
 
 // delete server
