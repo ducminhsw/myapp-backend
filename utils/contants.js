@@ -33,4 +33,77 @@ const SERVER_TYPE = {
     PRIVATE: 1
 }
 
-module.exports = { GET_USER_TYPE, FRIEND_STATUS, REQUEST_TYPE, ACCOUNT_TYPE, CHANNEL_TYPE, SERVER_TYPE };
+const responseCode = {
+    CREATE_SUCCESS: {
+        statusCode: 201,
+        body: {
+            privateCode: "0001",
+            message: "Create success"
+        }
+    },
+    CREATE_FAILED: {
+        statusCode: 400,
+        body: {
+            privateCode: "0002",
+            message: "Create failed"
+        }
+    },
+    PUT_SUCCESS: {
+        statusCode: 200,
+        body: {
+            privateCode: "0001",
+            message: "Edit success"
+        }
+    },
+    PUT_FAILED: {
+        statusCode: 400,
+        body: {
+            privateCode: "0002",
+            message: "Edit failed"
+        }
+    },
+    GET_SUCCESS: {
+        statusCode: 200,
+        body: {
+            privateCode: "0001",
+            message: "Get data success"
+        }
+    },
+    GET_FAILED: {
+        statusCode: 400,
+        body: {
+            privateCode: "0002",
+            message: "Get data failed"
+        }
+    },
+    DELETE_SUCCESS: {
+        statusCode: 200,
+        body: {
+            privateCode: "0001",
+            message: "Delete data success"
+        }
+    },
+    DELETE_FAILED: {
+        statusCode: 400,
+        body: {
+            privateCode: "0002",
+            message: "Delete failed"
+        }
+    },
+    SERVER_CONFLICT: {
+        statusCode: 409,
+        body: {
+            privateCode: "0002",
+            message: "Conflict server"
+        }
+    },
+    SERVER_ERROR: {
+        statusCode: 500,
+        body: {
+            privateCode: "0002",
+            message: "Something went wrong"
+        }
+    }
+}
+
+module.exports = { responseCode, GET_USER_TYPE, FRIEND_STATUS, REQUEST_TYPE, ACCOUNT_TYPE, CHANNEL_TYPE, SERVER_TYPE };
