@@ -1,74 +1,5 @@
-const responseCode = {
-    CREATE_SUCCESS: {
-        statusCode: 201,
-        body: {
-            privateCode: "0001",
-            message: "Create success"
-        }
-    },
-    CREATE_FAILED: {
-        statusCode: 400,
-        body: {
-            privateCode: "0002",
-            message: "Create failed"
-        }
-    },
-    PUT_SUCCESS: {
-        statusCode: 200,
-        body: {
-            privateCode: "0001",
-            message: "Edit success"
-        }
-    },
-    PUT_FAILED: {
-        statusCode: 400,
-        body: {
-            privateCode: "0002",
-            message: "Edit failed"
-        }
-    },
-    GET_SUCCESS: {
-        statusCode: 200,
-        body: {
-            privateCode: "0001",
-            message: "Get data success"
-        }
-    },
-    GET_FAILED: {
-        statusCode: 400,
-        body: {
-            privateCode: "0002",
-            message: "Get data failed"
-        }
-    },
-    DELETE_SUCCESS: {
-        statusCode: 200,
-        body: {
-            privateCode: "0001",
-            message: "Delete data success"
-        }
-    },
-    DELETE_FAILED: {
-        statusCode: 400,
-        body: {
-            privateCode: "0002",
-            message: "Delete failed"
-        }
-    },
-    SERVER_CONFLICT: {
-        statusCode: 409,
-        body: {
-            privateCode: "0002",
-            message: "Conflict server"
-        }
-    },
-    SERVER_ERROR: {
-        statusCode: 500,
-        body: {
-            privateCode: "0002",
-            message: "Something went wrong"
-        }
-    }
+const isEmpty = (obj) => {
+    return JSON.stringify(obj) === '{}';
 }
 
 const handleResponse = (responseCode, message, data = null) => {
@@ -127,4 +58,4 @@ const notFoundErrorResponse = (res, code = 404, message = "Not found") => {
     });
 }
 
-module.exports = { responseCode, handleResponse, handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse, invalidParameterErrorResponse, notFoundErrorResponse, serverConflictError };
+module.exports = { isEmpty, handleResponse, handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse, invalidParameterErrorResponse, notFoundErrorResponse, serverConflictError };
