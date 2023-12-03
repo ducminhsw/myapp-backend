@@ -4,7 +4,7 @@ const { isEmpty } = require('../utils/utilsfunc');
 const { Server } = io;
 
 const streamSender = {};
-const peerConnection = {};
+const peerConnection = new Map();
 
 const servers = {
     iceServers: [
@@ -34,57 +34,31 @@ const registerSocketServer = (server) => {
     try {
         ioServer.on('connection', (socket) => {
             // webrtc
-            // offer from server
-            socket.on('join_room', async ({ roomId, socketId }) => {
-                console.log(socketId);
-                // create new peer connection with socket.id
-                peerConnection[`${socketId}`] = new webrtc.RTCPeerConnection(servers);
-
-                // if client add track
-                peerConnection[`${socketId}`].ontrack = (event) => {
-                    console.log(event.streams[0]);
-                    streamSender[`${socketId}`] = event.streams[0];
-                }
-
-                // if client add track
-                peerConnection[`${socketId}`].onicecandidate = (event) => {
-                    console.log(event);
-                    if (event.candidate) {
-                        console.log('New ICE candidate', event.candidate);
-                    }
-                }
-
-                // create offer to client
-                const serverOffer = await peerConnection[`${socketId}`].createOffer();
-                const desc = new webrtc.RTCSessionDescription(serverOffer);
-                // setLocal(server)Description
-                await peerConnection[`${socketId}`].setLocalDescription(desc);
-
-                // emit event offer connection to client
-                socket.emit(`server_offer_${socketId}`, { serverOffer });
-            });
-
-            socket.on('answer_server', async ({ answer, socketId }) => {
-                const desc = new webrtc.RTCSessionDescription(answer);
-                await peerConnection[`${socketId}`].setRemoteDescription(desc);
-                socket.emit('RTC connection created');
-            });
-
             // offer from client
             socket.on('offer_room', async ({ roomId, offer }) => {
-                socket.join(roomId);
                 // create peer connection
-                peerConnection[`${socket.id}`] = new webrtc.RTCPeerConnection(servers);
+                const socketString = String(socket.id);
+                peerConnection.set(socketString, new webrtc.RTCPeerConnection(servers));
 
-                peerConnection[`${socket.id}`].ontrack = (event) => {
-                    console.log(event);
-                    streamSender[`${socket.id}`] = event.streams[0];
-                }
+                // peerConnection[socketString] = new webrtc.RTCPeerConnection(servers);
 
-                peerConnection.onicecandidate = (event) => {
-                    console.log('Candidate 0000');
-                    if (event.candidate) {
-                        console.log('Candidate', event.candidate);
+                peerConnection.get(socketString).ontrack = (event) => {
+                    streamSender[socketString] = event.streams[0];
+                    const senderTracksLength = streamSender[socketString].getTracks().length - 1;
+                    for (const stream in streamSender) {
+                        // console.log('into for loop')
+                        // new user get his/her stream from another
+                        if (stream === String(socket.id)) {
+                            for (const another in streamSender) {
+                                if (socket.id === another) continue;
+                                let tracks = streamSender[another].getTracks().length - 1;
+                                peerConnection.get(socketString).addTrack(streamSender[another].getTracks()[tracks], streamSender[socketString]);
+                            }
+                        } else {
+                            // new user send his/her stream to another
+                            console.log('59', stream);
+                            peerConnection.get(stream).addTrack(streamSender[socketString].getTracks()[senderTracksLength], streamSender[stream]);
+                        }
                     }
                 }
 
@@ -92,29 +66,22 @@ const registerSocketServer = (server) => {
                 const offerDesc = new webrtc.RTCSessionDescription(offer);
 
                 // set remote description
-                await peerConnection[`${socket.id}`].setRemoteDescription(offerDesc);
+                await peerConnection.get(socketString).setRemoteDescription(offerDesc);
 
                 // create answer
-                const answer = await peerConnection[`${socket.id}`].createAnswer();
+                const answer = await peerConnection.get(socketString).createAnswer();
 
                 // set local description
                 const answerDesc = new webrtc.RTCSessionDescription(answer);
-                await peerConnection[`${socket.id}`].setLocalDescription(answerDesc);
+                await peerConnection.get(socketString).setLocalDescription(answerDesc);
 
                 // answer to client by socket
                 socket.emit(`finish_answer_${socket.id}`, { answer: answer });
             });
 
-            socket.on('join_channel_done', () => {
-                console.log('Done');
-                const isEmptyRoom = isEmpty(streamSender);
-                if (!isEmptyRoom) {
-                    for (stream of streamSender) {
-                        if (stream === socket.id) continue;
-                        peerConnection[`${socket.id}`].addTrack(streamSender[`${socket.id}`]);
-                    }
-                }
-            });
+            socket.on('send_ice_candidate', async ({ candidate }) => {
+                await peerConnection.get(String(socket.id)).addIceCandidate(candidate);
+            })
 
             // messages
             socket.on('send-message', (socket) => {
