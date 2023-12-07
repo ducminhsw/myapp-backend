@@ -3,7 +3,8 @@ const webrtc = require('wrtc');
 const { isEmpty } = require('../utils/utilsfunc');
 const { Server } = io;
 
-const streamSender = {};
+const streamSender = new Map();
+const consumeTransport = new Map();
 const peerConnection = new Map();
 
 const servers = {
@@ -31,74 +32,86 @@ const registerSocketServer = (server) => {
         }
     });
 
+    const handleOfferFromClient = async (socket, message) => {
+        const socketString = String(socket.id);
+        peerConnection.set(socketString, new webrtc.RTCPeerConnection(servers));
+
+        peerConnection.get(socketString).ontrack = (event) => {
+            console.log('into ontrack');
+            peerConnection.get(socketString).stream = event.streams[0];
+        }
+        const { offer } = message;
+
+        await peerConnection.get(socketString).setRemoteDescription(offer);
+        const answer = await peerConnection.get(socketString).createAnswer();
+        await peerConnection.get(socketString).setLocalDescription(answer);
+
+        socket.emit(
+            'webrtc-client',
+            {
+                type: 'answer-offer',
+                answer: answer
+            }
+        );
+    }
+
+    const handleRequestGetPeers = (socket, message) => {
+        const listPeers = [];
+        for (const peer in streamSender) {
+            if (peer === String(socket.id)) continue;
+            listPeers.push(
+                {
+                    peerId: peer,
+                    peerName: peer.username || socket.id
+                }
+            );
+        }
+
+        socket.emit('peers', { listPeers });
+    }
+
+    const handleIceFromClient = (socket, message) => {
+        console.log('into add ice');
+        peerConnection.get(message.peerId).addIceCandidate(message.candidate);
+    }
+
+    const handleRequestStreamFromClient = (socket, message) => {
+
+    }
+
+    const handleSendIceConsumeToClient = (socket, message) => {
+
+    }
+
+    // webrtc
+    const handleMessageFromClient = (socket, message) => {
+        switch (message.type) {
+            case 'send-offer':
+                handleOfferFromClient(socket, message);
+                break;
+            case 'get-peer':
+                handleRequestGetPeers(socket, message);
+                break;
+            case 'send-ice':
+                handleIceFromClient(socket, message);
+                break;
+            case 'consume-stream':
+                handleRequestStreamFromClient(socket, message);
+                break;
+            case 'consume-ice-stream':
+                handleSendIceConsumeToClient(socket, message);
+                break;
+        }
+    }
+
+    // message
+
     try {
         ioServer.on('connection', (socket) => {
             // webrtc
-            // offer from client
-            socket.on('offer_room', async ({ roomId, offer }) => {
-                // create peer connection
-                const socketString = String(socket.id);
-                peerConnection.set(socketString, new webrtc.RTCPeerConnection(servers));
-
-                // peerConnection[socketString] = new webrtc.RTCPeerConnection(servers);
-
-                peerConnection.get(socketString).ontrack = (event) => {
-                    streamSender[socketString] = event.streams[0];
-                    const senderTracksLength = streamSender[socketString].getTracks().length - 1;
-                    for (const stream in streamSender) {
-                        // console.log('into for loop')
-                        // new user get his/her stream from another
-                        if (stream === String(socket.id)) {
-                            for (const another in streamSender) {
-                                if (socket.id === another) continue;
-                                let tracks = streamSender[another].getTracks().length - 1;
-                                peerConnection.get(socketString).addTrack(streamSender[another].getTracks()[tracks], streamSender[socketString]);
-                            }
-                        } else {
-                            // new user send his/her stream to another
-                            console.log('59', stream);
-                            peerConnection.get(stream).addTrack(streamSender[socketString].getTracks()[senderTracksLength], streamSender[stream]);
-                        }
-                    }
-                }
-
-                // create description from offer
-                const offerDesc = new webrtc.RTCSessionDescription(offer);
-
-                // set remote description
-                await peerConnection.get(socketString).setRemoteDescription(offerDesc);
-
-                // create answer
-                const answer = await peerConnection.get(socketString).createAnswer();
-
-                // set local description
-                const answerDesc = new webrtc.RTCSessionDescription(answer);
-                await peerConnection.get(socketString).setLocalDescription(answerDesc);
-
-                // answer to client by socket
-                socket.emit(`finish_answer_${socket.id}`, { answer: answer });
-            });
-
-            socket.on('send_ice_candidate', async ({ candidate }) => {
-                await peerConnection.get(String(socket.id)).addIceCandidate(candidate);
+            socket.on('webrtc-server', (message) => {
+                handleMessageFromClient(message);
             })
-
-            // messages
-            socket.on('send-message', (socket) => {
-
-            });
-
-            socket.on('withdraw-message', (socket) => {
-
-            });
-
-            socket.on('recieve-message', (socket) => {
-
-            });
-
-            socket.on('disconnect', () => {
-
-            });
         })
     } catch (error) {
         console.log(error)
