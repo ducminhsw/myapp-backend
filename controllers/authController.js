@@ -77,11 +77,18 @@ const login = async (req, res) => {
             return res.status(200).send(handleResponse(200, 'Login success.',
                 {
                     userCredentials: {
+                        role: userExists.role,
                         username: userExists.username,
                         email: userExists.email,
                         firstName: userExists.firstName,
                         lastName: userExists.lastName,
+                        avatar: userExists.avatar,
                         friends: userExists.friends,
+                        phoneNumber: userExists.phoneNumber,
+                        headOfSever: userExists.headOfSever,
+                        dateOfBirth: userExists.dateOfBirth,
+                        storyNow: userExists.storyNow,
+                        stories: userExists.stories,
                         token: token
                     }
                 }));
