@@ -14,7 +14,7 @@ const createServer = async (req, res) => {
         return invalidParameterErrorResponse(res);
     }
 
-    if (!verified || typeof verified !== 'string') {
+    if (!verified || typeof verified !== 'boolean') {
         return handleConvertResponse(res, 401, 'User not verified, can not create a server.');
     }
 
