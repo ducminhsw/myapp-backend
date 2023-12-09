@@ -24,13 +24,13 @@ const ACCOUNT_TYPE = {
 }
 
 const CHANNEL_TYPE = {
-    CHAT: 0,
-    VOICE: 1
+    CHAT: 1,
+    VOICE: 2
 }
 
 const SERVER_TYPE = {
-    PUBLIC: 0,
-    PRIVATE: 1
+    PUBLIC: 1,
+    PRIVATE: 2
 }
 
 const responseCode = {
