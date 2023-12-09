@@ -2,10 +2,14 @@ const io = require('socket.io');
 const webrtc = require('wrtc');
 const { isEmpty } = require('../utils/utilsfunc');
 const { Server } = io;
-
-const streamSender = new Map();
-const consumeTransport = new Map();
-const peerConnection = new Map();
+// copy of user stream
+const consumeTransporter = new Map();
+// real user stream created when create connection
+const streamTransport = new Map();
+// peers in the server
+const peer = new Map();
+const clientEmitter = 'webrtc-client';
+const serverEmitter = 'webrtc-server';
 
 const servers = {
     iceServers: [
@@ -32,87 +36,114 @@ const registerSocketServer = (server) => {
         }
     });
 
-    const handleOfferFromClient = async (socket, message) => {
-        const socketString = String(socket.id);
-        peerConnection.set(socketString, new webrtc.RTCPeerConnection(servers));
-
-        peerConnection.get(socketString).ontrack = (event) => {
-            console.log('into ontrack');
-            peerConnection.get(socketString).stream = event.streams[0];
-        }
-        const { offer } = message;
-
-        await peerConnection.get(socketString).setRemoteDescription(offer);
-        const answer = await peerConnection.get(socketString).createAnswer();
-        await peerConnection.get(socketString).setLocalDescription(answer);
-
-        socket.emit(
-            'webrtc-client',
-            {
-                type: 'answer-offer',
-                answer: answer
-            }
-        );
-    }
-
-    const handleRequestGetPeers = (socket, message) => {
-        const listPeers = [];
-        for (const peer in streamSender) {
-            if (peer === String(socket.id)) continue;
-            listPeers.push(
-                {
-                    peerId: peer,
-                    peerName: peer.username || socket.id
-                }
-            );
-        }
-
-        socket.emit('peers', { listPeers });
-    }
-
-    const handleIceFromClient = (socket, message) => {
-        console.log('into add ice');
-        peerConnection.get(message.peerId).addIceCandidate(message.candidate);
-    }
-
-    const handleRequestStreamFromClient = (socket, message) => {
-
-    }
-
-    const handleSendIceConsumeToClient = (socket, message) => {
-
-    }
-
     // webrtc
-    const handleMessageFromClient = (socket, message) => {
-        switch (message.type) {
-            case 'send-offer':
-                handleOfferFromClient(socket, message);
-                break;
-            case 'get-peer':
-                handleRequestGetPeers(socket, message);
-                break;
-            case 'send-ice':
-                handleIceFromClient(socket, message);
-                break;
-            case 'consume-stream':
-                handleRequestStreamFromClient(socket, message);
-                break;
-            case 'consume-ice-stream':
-                handleSendIceConsumeToClient(socket, message);
-                break;
-        }
-    }
-
-    // message
 
     try {
         ioServer.on('connection', (socket) => {
+            socket.join('main-room');
+            const socketString = String(socket.id);
             // webrtc
-            socket.on('webrtc-server', (message) => {
-                handleMessageFromClient(message);
-            })
-        })
+            socket.on(serverEmitter, async (message) => {
+                switch (message.type) {
+                    case 'local-send-ice':
+                        if (peer.get(socketString) && message.data.ice)
+                            peer.get(socketString).addIceCandidate(new webrtc.RTCIceCandidate(message.data.ice)).catch(e => console.log('1:', e));;
+                        break;
+                    case 'ice-for-peer-transport':
+                        const { uuid, ice } = message.data;
+                        if (ice && uuid && consumeTransporter.get(uuid)) {
+                            consumeTransporter.get(uuid).addIceCandidate(new webrtc.RTCIceCandidate(ice)).catch(e => console.log('2:', e));
+                        }
+                        break;
+                    case 'local-send-offer':
+                        const { data } = message;
+                        const { offer } = data;
+
+                        peer.set(socketString, new webrtc.RTCPeerConnection());
+                        peer.get(socketString).ontrack = (event) => {
+                            streamTransport.set(socketString, event.streams[0]);
+                        }
+                        await peer.get(socketString).setRemoteDescription(new webrtc.RTCSessionDescription(offer));
+                        const answer = await peer.get(socketString).createAnswer();
+                        await peer.get(socketString).setLocalDescription(answer);
+                        const answerPayload = {
+                            type: 'server-answer-local-offer',
+                            answer: answer
+                        }
+                        socket.emit(clientEmitter, answerPayload);
+                        break;
+                    case 'get-all-peer':
+                        const peers = [];
+                        for (const [peerKey, _pc] of peer) {
+                            if (peerKey === socketString) continue;
+                            peers.push(peerKey);
+                        }
+                        const peersPayload = {
+                            type: 'all-peer',
+                            peers: peers
+                        }
+                        socket.emit(clientEmitter, peersPayload);
+                        break;
+                    case 'send-offer-for-peer-stream':
+                        const offerRemoteStream = message.data.offer;
+                        const randomUuid = message.data.uuid;
+                        const peerId = message.data.peerId;
+
+                        consumeTransporter.set(randomUuid, new webrtc.RTCPeerConnection(servers));
+                        if (!streamTransport.get(peerId)) return;
+                        streamTransport.get(peerId).getTracks().forEach((track) => {
+                            consumeTransporter.get(randomUuid).addTrack(track, streamTransport.get(peerId));
+                        });
+                        await consumeTransporter.get(randomUuid).setRemoteDescription(new webrtc.RTCSessionDescription(offerRemoteStream));
+                        const answerConsumerTransport = await consumeTransporter.get(randomUuid).createAnswer();
+                        await consumeTransporter.get(randomUuid).setLocalDescription(answerConsumerTransport);
+
+                        const consumeTransportPayload = {
+                            type: 'answer-consume-remote-stream',
+                            peerId: peerId,
+                            answer: answerConsumerTransport
+                        }
+                        socket.emit(clientEmitter, consumeTransportPayload);
+                        break;
+                    case 'broadcast-all-new-user-joined':
+                        const otherPeers = [];
+                        for (const [peerKey, _pc] of otherPeers) {
+                            if (peerKey === socketString) continue;
+                            otherPeers.push(peerKey);
+                        }
+                        const otherPeersPayload = {
+                            type: 'new-user-joined-room',
+                            peers: otherPeers,
+                            peerId: socketString
+                        }
+                        socket.to('main-room').emit(clientEmitter, otherPeersPayload);
+                        break;
+                }
+            });
+
+            // message user-user
+            socket.on('message-channel-server', (message) => {
+                switch (message.type) {
+                    case 'send-message-to-channel':
+                        break;
+                    case 'receive-message-from-channel':
+                        break;
+                    case 'delete-my-message':
+                        break;
+                }
+            });
+
+            socket.on('message-inbox-server', (message) => {
+                switch (message.type) {
+                    case 'send-message-to-other':
+                        break;
+                    case 'receive-message-from-other':
+                        break;
+                    case 'delete-message':
+                        break;
+                }
+            });
+        });
     } catch (error) {
         console.log(error)
     }
