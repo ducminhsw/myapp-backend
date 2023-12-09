@@ -27,7 +27,7 @@ const register = async (req, res) => {
                 role: 'user',
                 username: username,
                 hashPassword: hashPassword,
-                verified: false,
+                verified: true,
                 email: email,
                 firstName: firstName,
                 lastName: lastName,
