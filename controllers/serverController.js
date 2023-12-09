@@ -33,9 +33,7 @@ const createServer = async (req, res) => {
             headOfChannel: [{
                 user: user._id
             }],
-            member: [{
-                user: user._id
-            }],
+            member: [],
             channel_type: CHANNEL_TYPE.CHAT,
             messages: []
         });
@@ -49,12 +47,8 @@ const createServer = async (req, res) => {
             channels: [{
                 channel: newChannel._id
             }],
-            admin: [{
-                user: user._id
-            }],
-            participants: [{
-                user: user._id
-            }],
+            admin: [],
+            participants: [],
             joinRequest: [],
             muted: [],
             banned: []
