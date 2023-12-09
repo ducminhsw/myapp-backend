@@ -78,6 +78,7 @@ const login = async (req, res) => {
                 {
                     userCredentials: {
                         role: userExists.role,
+                        userId: userExists._id,
                         username: userExists.username,
                         email: userExists.email,
                         firstName: userExists.firstName,
