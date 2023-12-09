@@ -80,6 +80,7 @@ const login = async (req, res) => {
                         role: userExists.role,
                         userId: userExists._id,
                         username: userExists.username,
+                        verified: userExists.verified,
                         email: userExists.email,
                         firstName: userExists.firstName,
                         lastName: userExists.lastName,
