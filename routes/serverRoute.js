@@ -28,7 +28,7 @@ route.put('/:serverId', editServerInformation);
 route.post('/:serverId/on', requestJoinServer);
 
 // accept user join server
-route.post('/:serverId/accept', acceptUserJoin);
+route.post('/:serverId/:targetUserId/accept', acceptUserJoin);
 
 // user leave server
 route.post('/:serverId/off', requestLeaveServer);
@@ -37,6 +37,6 @@ route.post('/:serverId/off', requestLeaveServer);
 route.post('/:serverId/resign', resignServerPosition);
 
 // remove user from server
-route.delete('/:serverId/:userId', deleteUserInServer)
+route.delete('/:serverId/:targetUserId', deleteUserInServer)
 
 module.exports = route;

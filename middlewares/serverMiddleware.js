@@ -31,7 +31,9 @@ const verifiedServerInfo = async (req, res, next) => {
             return;
         }
         return serverDoc;
-    });
+    }).populate('channels.chatChannel.channel')
+        .populate('channels.voiceChannel.channel')
+        .exec();
 
     if (!server) {
         return invalidParameterErrorResponse(res, 404, 'Not found.');
