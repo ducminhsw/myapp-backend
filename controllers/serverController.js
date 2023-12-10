@@ -4,6 +4,24 @@ const User = require("../models/user");
 const { CHANNEL_TYPE, SERVER_TYPE } = require("../utils/contants");
 const { handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse, invalidParameterErrorResponse, notFoundErrorResponse, serverConflictError } = require("../utils/utilsfunc");
 
+const getUserServer = async (req, res) => {
+    const { userId, email } = req.body;
+    if (!userId || typeof userId !== 'string') {
+        return invalidParameterErrorResponse(res);
+    }
+
+    if (!email || typeof email !== 'string') {
+        return invalidParameterErrorResponse(res);
+    }
+
+    const user = await User.findOne({ _id: userId, email: email });
+    if (!user) {
+        return notFoundErrorResponse(res);
+    }
+
+    return handleConvertResponse(res, 200, 'Server contain user', user.underServer);
+}
+
 const createServer = async (req, res) => {
     const { userId, email, verified, typeServer } = req.body;
     if (!userId || typeof userId !== 'string') {
