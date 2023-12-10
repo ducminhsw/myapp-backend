@@ -1,5 +1,7 @@
 const express = require('express');
-const { createServer, getServerInformation, editServerInformation, requestJoinServer, requestLeaveServer, resignServerPosition, deleteUserInServer, acceptUserJoin } = require('../controllers/serverController');
+const { createServer, getServerInformation, editServerInformation,
+    requestJoinServer, requestLeaveServer, resignServerPosition,
+    deleteUserInServer, acceptUserJoin } = require('../controllers/serverController');
 const { verifyToken } = require('../middlewares/authMiddleware');
 const { verifiedServerInfo } = require('../middlewares/serverMiddleware');
 const route = express.Router();
@@ -14,27 +16,27 @@ route.post('/new', createServer);
 route.use(verifiedServerInfo);
 
 // delete server
-route.delete('/:id');
+route.delete('/:serverId');
 
 // get server info
-route.get('/:id', getServerInformation);
+route.get('/:serverId', getServerInformation);
 
 // edit server info
-route.put('/:id', editServerInformation);
+route.put('/:serverId', editServerInformation);
 
 // user request join server
-route.post('/:id/on', requestJoinServer);
+route.post('/:serverId/on', requestJoinServer);
 
 // accept user join server
-route.post('/:id/accept', acceptUserJoin);
+route.post('/:serverId/accept', acceptUserJoin);
 
 // user leave server
-route.post('/:id/off', requestLeaveServer);
+route.post('/:serverId/off', requestLeaveServer);
 
 // head of server resign
-route.post('/:id/resign', resignServerPosition);
+route.post('/:serverId/resign', resignServerPosition);
 
 // remove user from server
-route.delete('/:id/:user_id', deleteUserInServer)
+route.delete('/:serverId/:userId', deleteUserInServer)
 
 module.exports = route;
