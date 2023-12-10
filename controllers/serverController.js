@@ -87,7 +87,9 @@ const requestJoinServer = async (req, res) => {
     try {
         if (serverMongo.type === SERVER_TYPE.PUBLIC) {
             serverMongo.participants.push({ user: userRequest._id, createAt: Date.now() });
-            serverMongo.save();
+            await serverMongo.save();
+            userRequest.underServer.push({ user: serverMongo._id, createAt: Date.now() });
+            await userRequest.save();
             return handleConvertResponse(res);
         }
         if (serverMongo.type === SERVER_TYPE.PRIVATE) {
@@ -109,19 +111,20 @@ const acceptUserJoin = async (req, res) => {
         return unauthorizeErrorResponse(res);
     }
 
-    const requestJoinUserId = req.params.user_id;
+    const requestJoinUserId = req.params.targetUserId;
     const requestJoinUser = await User.findById(requestJoinUserId);
     if (!requestJoinUser) {
         return notFoundErrorResponse(res);
     }
 
     try {
-        // if user is head of server
+        // if user is not head of server
         let headServerIndex = serverMongo.headOfServer.findIndex(item => item.user === userRequest._id);
         if (headServerIndex < 0) {
             return unauthorizeErrorResponse(res, 403, "You do not have permission to do this action.");
         }
 
+        // if user is head of server
         const joinIndex = serverMongo.joinRequest.findIndex(item => item.user === requestJoinUser._id);
         if (joinIndex < 0) {
             return notFoundErrorResponse(res);
@@ -129,6 +132,8 @@ const acceptUserJoin = async (req, res) => {
         serverMongo.joinRequest.splice(joinIndex, 1);
         serverMongo.participants.push(requestJoinUser._id);
         await serverMongo.save();
+        requestJoinUser.underServer.push(serverMongo._id);
+        await requestJoinUser.save();
         return handleConvertResponse(res);
     } catch (error) {
         console.log('error', error);
