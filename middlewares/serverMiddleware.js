@@ -3,11 +3,13 @@ const User = require("../models/user");
 const { serverErrorResponse } = require("../utils/utilsfunc");
 
 const verifiedServerInfo = async (req, res, next) => {
-    const { userId, serverId } = req.body;
+    const { userId } = req.body;
 
     if (!userId || typeof userId !== 'string') {
         return invalidParameterErrorResponse(res);
     }
+
+    const { serverId } = req.params;
 
     if (!serverId || typeof serverId !== 'string') {
         return invalidParameterErrorResponse(res);
