@@ -25,13 +25,16 @@ const register = async (req, res) => {
             const { firstName, lastName, dateOfBirth } = req.body;
             const user = await User.create({
                 role: 'user',
-                username: username,
-                hashPassword: hashPassword,
-                verified: true,
                 email: email,
+                username: username,
                 firstName: firstName,
                 lastName: lastName,
+                hashPassword: hashPassword,
+                verified: true,
                 dateOfBirth: dateOfBirth,
+                underServer: [],
+                headOfSever: [],
+                stories: [],
                 friends: []
             });
 
@@ -79,14 +82,14 @@ const login = async (req, res) => {
                     userCredentials: {
                         role: userExists.role,
                         userId: userExists._id,
-                        username: userExists.username,
-                        verified: userExists.verified,
                         email: userExists.email,
+                        username: userExists.username,
                         firstName: userExists.firstName,
                         lastName: userExists.lastName,
                         avatar: userExists.avatar,
                         friends: userExists.friends,
                         phoneNumber: userExists.phoneNumber,
+                        underServer: userExists.underServer,
                         headOfSever: userExists.headOfSever,
                         dateOfBirth: userExists.dateOfBirth,
                         storyNow: userExists.storyNow,

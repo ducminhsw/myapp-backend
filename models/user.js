@@ -33,6 +33,16 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
+    underServer: [{
+        server: {
+            type: Schema.Types.ObjectId,
+            ref: 'server'
+        },
+        createAt: {
+            type: Date,
+            default: Date.now()
+        }
+    }],
     headOfSever: [{
         server: {
             type: Schema.Types.ObjectId,
