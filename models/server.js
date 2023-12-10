@@ -21,16 +21,28 @@ const serverSchema = new Schema({
         type: Number,
         required: true
     },
-    channels: [{
-        channel: {
-            type: Schema.Types.ObjectId,
-            ref: 'channel'
-        },
-        createAt: {
-            type: Date,
-            default: Date.now()
-        }
-    }],
+    channels: {
+        chatChannel: [{
+            channel: {
+                type: Schema.Types.ObjectId,
+                ref: 'channel'
+            },
+            createAt: {
+                type: Date,
+                default: Date.now()
+            }
+        }],
+        voiceChannel: [{
+            channel: {
+                type: Schema.Types.ObjectId,
+                ref: 'channel'
+            },
+            createAt: {
+                type: Date,
+                default: Date.now()
+            }
+        }]
+    },
     participants: [{
         user: {
             type: Schema.Types.ObjectId,

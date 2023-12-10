@@ -29,7 +29,17 @@ const createServer = async (req, res) => {
     }
 
     try {
-        const newChannel = await Channel.create({
+        const newChatChannel = await Channel.create({
+            channel_name: 'general',
+            headOfChannel: [{
+                user: user._id
+            }],
+            member: [],
+            channel_type: CHANNEL_TYPE.CHAT,
+            messages: []
+        });
+
+        const newVoiceChannel = await Channel.create({
             channel_name: 'general',
             headOfChannel: [{
                 user: user._id
@@ -45,9 +55,10 @@ const createServer = async (req, res) => {
                 user: user._id
             }],
             type: typeServer,
-            channels: [{
-                channel: newChannel._id
-            }],
+            channels: {
+                chatChannel: [newChatChannel._id],
+                voiceChannel: [newVoiceChannel._id]
+            },
             admin: [],
             participants: [],
             joinRequest: [],
@@ -55,7 +66,10 @@ const createServer = async (req, res) => {
             banned: []
         });
 
-        return handleConvertResponse(res, 201, "Create server successfully.", server);
+        return handleConvertResponse(res, 201, "Create server successfully.",
+            await server.populate('channels.chatChannel.channel')
+                .populate('channels.voiceChannel.channel')
+                .exec());
     } catch (error) {
         console.log(error);
         return serverErrorResponse(res);
