@@ -40,19 +40,34 @@ const registerSocketServer = (server) => {
 
     try {
         ioServer.on('connection', (socket) => {
-            socket.join('main-room');
             const socketString = String(socket.id);
+
+            socket.on("disconnect", (_reason) => {
+                const leavePayload = {
+                    type: 'someone-left-room',
+                    socketId: socketString
+                }
+                socket.to('main-room').emit("webrtc-client", leavePayload);
+                console.log('user leave');
+                peer.delete(socketString);
+                streamTransport.delete(socketString);
+            });
+
             // webrtc
             socket.on(serverEmitter, async (message) => {
                 switch (message.type) {
                     case 'local-send-ice':
                         if (peer.get(socketString) && message.data.ice)
-                            peer.get(socketString).addIceCandidate(new webrtc.RTCIceCandidate(message.data.ice)).catch(e => console.log('1:', e));;
+                            peer.get(socketString)
+                                .addIceCandidate(new webrtc.RTCIceCandidate(message.data.ice))
+                                .catch(e => console.log('1:', e));;
                         break;
                     case 'ice-for-peer-transport':
                         const { uuid, ice } = message.data;
                         if (ice && uuid && consumeTransporter.get(uuid)) {
-                            consumeTransporter.get(uuid).addIceCandidate(new webrtc.RTCIceCandidate(ice)).catch(e => console.log('2:', e));
+                            consumeTransporter.get(uuid)
+                                .addIceCandidate(new webrtc.RTCIceCandidate(ice))
+                                .catch(e => console.log('2:', e));
                         }
                         break;
                     case 'local-send-offer':
@@ -71,6 +86,7 @@ const registerSocketServer = (server) => {
                             answer: answer
                         }
                         socket.emit(clientEmitter, answerPayload);
+                        socket.join('main-room');
                         break;
                     case 'get-all-peer':
                         const peers = [];
@@ -85,6 +101,7 @@ const registerSocketServer = (server) => {
                         socket.emit(clientEmitter, peersPayload);
                         break;
                     case 'send-offer-for-peer-stream':
+                        // socket.join('main-room');
                         const offerRemoteStream = message.data.offer;
                         const randomUuid = message.data.uuid;
                         const peerId = message.data.peerId;

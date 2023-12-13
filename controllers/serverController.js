@@ -258,5 +258,5 @@ const editServerInformation = async (req, res) => { }
 module.exports = {
     createServer, getServerInformation, requestJoinServer,
     editServerInformation, requestLeaveServer, resignServerPosition,
-    deleteUserInServer, acceptUserJoin, getUserServerInfomation
+    deleteUserInServer, acceptUserJoin
 };

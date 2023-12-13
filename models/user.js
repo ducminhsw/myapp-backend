@@ -61,7 +61,7 @@ const userSchema = new Schema({
         required: true
     },
     storyNow: {
-        content: { type: String },
+        content: { type: String, default: "" },
         dateOfStory: { type: Date, default: Date.now }
     },
     stories: [{

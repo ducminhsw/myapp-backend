@@ -23,7 +23,7 @@ const register = async (req, res) => {
                 return serverConflictError(res);
             }
             const { firstName, lastName, dateOfBirth } = req.body;
-            const user = await User.create({
+            const userObj = {
                 role: 'user',
                 email: email,
                 username: username,
@@ -36,7 +36,8 @@ const register = async (req, res) => {
                 headOfSever: [],
                 stories: [],
                 friends: []
-            });
+            }
+            const user = await User.create(userObj);
 
             await user.save();
 
@@ -47,8 +48,10 @@ const register = async (req, res) => {
                 {
                     expiresIn: '24h'
                 });
+
+            delete userObj.hashPassword;
             return handleConvertResponse(res, 201, "Create user success", {
-                userCredentials: user,
+                userCredentials: userObj,
                 token
             });
         });
@@ -58,7 +61,6 @@ const register = async (req, res) => {
 };
 
 const login = async (req, res) => {
-    console.log(req.params);
     const { email, password } = req.body;
     try {
         // check if user exists
