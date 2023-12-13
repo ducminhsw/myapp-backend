@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 require('dotenv').config();
+const base_url = '/api/v1/';
 
 const socketServer = require('./socketIO/socketServer');
 const mongoConnector = require('./database/mongo-access');
@@ -18,14 +19,14 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use('/api/v1/auth', require('./routes/authRoute'));
-app.use('/api/v1/admin', require('./routes/adminRoute'));
-app.use('/api/v1/user', require('./routes/userRoute'));
-app.use('/api/v1/myself', require('./routes/myselfRoute'));
-app.use('/api/v1/friend', require('./routes/friendRoute'));
-app.use('/api/v1/conversation', require('./routes/conversationRoute'));
-app.use('/api/v1/server', require('./routes/serverRoute'));
-app.use('/api/v1/channel', require('./routes/channelRoute'));
+app.use(`${base_url}auth`, require('./routes/authRoute'));
+app.use(`${base_url}admin`, require('./routes/adminRoute'));
+app.use(`${base_url}user`, require('./routes/userRoute'));
+app.use(`${base_url}myself`, require('./routes/myselfRoute'));
+app.use(`${base_url}friend`, require('./routes/friendRoute'));
+app.use(`${base_url}conversation`, require('./routes/conversationRoute'));
+app.use(`${base_url}server`, require('./routes/serverRoute'));
+app.use(`${base_url}channel`, require('./routes/channelRoute'));
 
 const server = http.createServer(app);
 socketServer.registerSocketServer(server);

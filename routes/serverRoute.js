@@ -19,7 +19,7 @@ route.use(verifiedServerInfo);
 route.delete('/:serverId');
 
 // get server info
-route.get('/:serverId', getServerInformation);
+route.post('/:serverId', getServerInformation);
 
 // edit server info
 route.put('/:serverId', editServerInformation);
@@ -37,6 +37,6 @@ route.post('/:serverId/off', requestLeaveServer);
 route.post('/:serverId/resign', resignServerPosition);
 
 // remove user from server
-route.delete('/:serverId/:targetUserId', deleteUserInServer)
+route.delete('/:serverId/:targetUserId', deleteUserInServer);
 
 module.exports = route;
