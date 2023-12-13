@@ -1,17 +1,23 @@
 const express = require('express');
 const route = express.Router();
 
-const { getProfile, postProfile, putProfile, getSecreteProfile, postSecretProfile, putSecretProfile, getStory, postStory, deleteStory } = require('../controllers/myselfController');
+const { getProfile, putProfile, postStory, deleteStory, getUserProfile } = require('../controllers/myselfController');
+const { verifyToken } = require('../middlewares/authMiddleware');
 
-// PUT my profile information
-route.route('/profile').get(getProfile)
-    .post(postProfile)
+// verify token
+route.use(verifyToken);
+
+// get user profile
+route.route('/profile/me')
+    .post(getUserProfile);
+
+// my profile information
+route.route('/profile')
+    .get(getProfile)
     .put(putProfile);
 
-// secret profile
-route.route('/scprofile').get(getSecreteProfile)
-    .post(postSecretProfile)
-    .put(putSecretProfile);
+// get another user profile
+
 
 // story
 route.route('/story')
