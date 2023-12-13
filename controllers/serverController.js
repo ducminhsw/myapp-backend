@@ -125,7 +125,7 @@ const acceptUserJoin = async (req, res) => {
         return unauthorizeErrorResponse(res);
     }
 
-    const requestJoinUserId = req.params.targetUserId;
+    const { requestJoinUserId } = req.body;
     const requestJoinUser = await User.findById(requestJoinUserId);
     if (!requestJoinUser) {
         return notFoundErrorResponse(res);
@@ -216,9 +216,9 @@ const deleteUserInServer = async (req, res) => {
         return unauthorizeErrorResponse(res);
     }
 
-    const deleteUserId = req.params.user_id;
-    const deleteUser = await User.findById(deleteUserId);
-    if (!deleteUser) {
+    const { targetUserId } = req.body;
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
         return notFoundErrorResponse(res);
     }
 
@@ -229,13 +229,13 @@ const deleteUserInServer = async (req, res) => {
         const indexHead = serverMongo.headOfServer.findIndex(item => item.user === userRequest._id);
         if (indexHead >= 0) {
             // target user is a head of server
-            target = serverMongo.headOfServer.findIndex(item => item.user === deleteUser._id);
+            target = serverMongo.headOfServer.findIndex(item => item.user === targetUser._id);
             if (target >= 0) {
                 return serverConflictError(res, 409, "You can not delete a head of server");
             }
 
             // target user is a normal guy
-            target = serverMongo.participants.findIndex(item => item.user === deleteUser._id);
+            target = serverMongo.participants.findIndex(item => item.user === targetUser._id);
             if (target >= 0) {
                 serverMongo.participants.splice(target, 1);
                 await serverMongo.save();
