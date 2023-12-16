@@ -78,6 +78,15 @@ const registerSocketServer = (server) => {
                         peer.get(socketString).ontrack = (event) => {
                             streamTransport.set(socketString, event.streams[0]);
                         }
+                        peer.get(socketString).onicecandidate = (event) => {
+                            if (event.candidate) {
+                                const icePayload = {
+                                    type: 'send-ice-to-client',
+                                    ice: event.candidate
+                                }
+                                socket.emit(clientEmitter, icePayload);
+                            }
+                        }
                         await peer.get(socketString).setRemoteDescription(new webrtc.RTCSessionDescription(offer));
                         const answer = await peer.get(socketString).createAnswer();
                         await peer.get(socketString).setLocalDescription(answer);
