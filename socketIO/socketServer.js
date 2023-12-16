@@ -14,18 +14,29 @@ const serverEmitter = 'webrtc-server';
 const servers = {
     iceServers: [
         {
-            urls: 'stun:stun.l.google.com:19302'
+            urls: "stun:stun.relay.metered.ca:80",
         },
         {
-            urls: 'turn:relay1.expressturn.com:3478',
-            username: 'ef2QGP88JE576UZJ7D',
-            credential: 'fu4PRmzfP5GpXdqj',
+            urls: "turn:a.relay.metered.ca:80",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
         },
-        { urls: "turn:a.relay.metered.ca:80", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" },
-        { urls: "turn:a.relay.metered.ca:80?transport=tcp", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" },
-        { urls: "turn:a.relay.metered.ca:443", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" },
-        { urls: "turn:a.relay.metered.ca:443?transport=tcp", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" }
-    ]
+        {
+            urls: "turn:a.relay.metered.ca:80?transport=tcp",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:443",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:443?transport=tcp",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
+        },
+    ],
 }
 
 const registerSocketServer = (server) => {
@@ -59,14 +70,14 @@ const registerSocketServer = (server) => {
                     case 'local-send-ice':
                         if (peer.get(socketString) && message.data.ice)
                             peer.get(socketString)
-                                .addIceCandidate(new webrtc.RTCIceCandidate(message.data.ice))
+                                .addIceCandidate(message.data.ice)
                                 .catch(e => console.log('1:', e));;
                         break;
                     case 'ice-for-peer-transport':
                         const { uuid, ice } = message.data;
                         if (ice && uuid && consumeTransporter.get(uuid)) {
                             consumeTransporter.get(uuid)
-                                .addIceCandidate(new webrtc.RTCIceCandidate(ice))
+                                .addIceCandidate(ice)
                                 .catch(e => console.log('2:', e));
                         }
                         break;
@@ -87,9 +98,12 @@ const registerSocketServer = (server) => {
                                 socket.emit(clientEmitter, icePayload);
                             }
                         }
+                        peer.get(socketString).addEventListener("icecandidateerror", (event) => {
+                            console.log(event);
+                        });
                         await peer.get(socketString).setRemoteDescription(new webrtc.RTCSessionDescription(offer));
                         const answer = await peer.get(socketString).createAnswer();
-                        await peer.get(socketString).setLocalDescription(answer);
+                        await peer.get(socketString).setLocalDescription(new webrtc.RTCSessionDescription(answer));
                         const answerPayload = {
                             type: 'server-answer-local-offer',
                             answer: answer
@@ -110,7 +124,6 @@ const registerSocketServer = (server) => {
                         socket.emit(clientEmitter, peersPayload);
                         break;
                     case 'send-offer-for-peer-stream':
-                        // socket.join('main-room');
                         const offerRemoteStream = message.data.offer;
                         const randomUuid = message.data.uuid;
                         const peerId = message.data.peerId;
@@ -120,9 +133,19 @@ const registerSocketServer = (server) => {
                         streamTransport.get(peerId).getTracks().forEach((track) => {
                             consumeTransporter.get(randomUuid).addTrack(track, streamTransport.get(peerId));
                         });
+                        consumeTransporter.get(randomUuid).onicecandidate = (event) => {
+                            if (event.candidate) {
+                                const peerIce = {
+                                    type: 'peer-ice-candidate',
+                                    peerId: peerId,
+                                    ice: event.candidate
+                                }
+                                socket.emit(clientEmitter, peerIce);
+                            }
+                        }
                         await consumeTransporter.get(randomUuid).setRemoteDescription(new webrtc.RTCSessionDescription(offerRemoteStream));
                         const answerConsumerTransport = await consumeTransporter.get(randomUuid).createAnswer();
-                        await consumeTransporter.get(randomUuid).setLocalDescription(answerConsumerTransport);
+                        await consumeTransporter.get(randomUuid).setLocalDescription(new webrtc.RTCSessionDescription(answerConsumerTransport));
 
                         const consumeTransportPayload = {
                             type: 'answer-consume-remote-stream',
