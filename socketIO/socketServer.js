@@ -14,15 +14,29 @@ const serverEmitter = 'webrtc-server';
 const servers = {
     iceServers: [
         {
-            urls: 'turn:relay1.expressturn.com:3478',
-            username: 'ef2QGP88JE576UZJ7D',
-            credential: 'fu4PRmzfP5GpXdqj',
+            urls: "stun:stun.relay.metered.ca:80",
         },
-        { urls: "turn:a.relay.metered.ca:80", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" },
-        { urls: "turn:a.relay.metered.ca:80?transport=tcp", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" },
-        { urls: "turn:a.relay.metered.ca:443", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" },
-        { urls: "turn:a.relay.metered.ca:443?transport=tcp", username: "1a38a9ab28c6d467023a08fb", credential: "KJi1ynRRNT2eB9UL" }
-    ]
+        {
+            urls: "turn:a.relay.metered.ca:80",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:80?transport=tcp",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:443",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
+        },
+        {
+            urls: "turn:a.relay.metered.ca:443?transport=tcp",
+            username: "704093801ff4bbc6cf50683c",
+            credential: "a/yUFSINlu9VgERN",
+        },
+    ],
 }
 
 const registerSocketServer = (server) => {
