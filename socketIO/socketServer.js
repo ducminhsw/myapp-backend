@@ -14,9 +14,6 @@ const serverEmitter = 'webrtc-server';
 const servers = {
     iceServers: [
         {
-            urls: 'stun:stun.l.google.com:19302'
-        },
-        {
             urls: 'turn:relay1.expressturn.com:3478',
             username: 'ef2QGP88JE576UZJ7D',
             credential: 'fu4PRmzfP5GpXdqj',
