@@ -21,8 +21,7 @@ app.use(cors(corsOptions));
 
 app.use(`${base_url}auth`, require('./routes/authRoute'));
 app.use(`${base_url}admin`, require('./routes/adminRoute'));
-app.use(`${base_url}user`, require('./routes/userRoute'));
-app.use(`${base_url}myself`, require('./routes/myselfRoute'));
+app.use(`${base_url}self`, require('./routes/selfRoute'));
 app.use(`${base_url}friend`, require('./routes/friendRoute'));
 app.use(`${base_url}conversation`, require('./routes/conversationRoute'));
 app.use(`${base_url}server`, require('./routes/serverRoute'));

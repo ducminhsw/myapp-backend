@@ -3,8 +3,8 @@ const User = require('../models/user');
 const { handleConvertResponse } = require('../utils/utilsfunc');
 
 const getProfile = async (req, res) => {
-    const { tokenCredential } = req;
-    if (!tokenCredential) {
+    const { decodedToken } = req;
+    if (!decodedToken) {
         return handleConvertResponse(res, 401, 'Invalid token');
     }
 
@@ -26,11 +26,29 @@ const getProfile = async (req, res) => {
     }
 };
 
-const postProfile = (req, res) => { };
+const getUserProfile = async (res, req) => {
+    const { userId, username } = req.body;
+
+    if (!username || typeof username !== 'string') {
+        return invalidParameterErrorResponse(res);
+    }
+
+    if (!userId || typeof userId !== 'string') {
+        return invalidParameterErrorResponse(res);
+    }
+
+    try {
+        const user = await User.findOne({ _id: userId, username: username });
+        if (!user) return notFoundErrorResponse(res);
+        return res.status(200).send(handleResponse(200, "Information of choosen", user));
+    } catch (error) {
+        return res.status(500).send(handleResponse(500, "Something went wrong"));
+    }
+};
 
 const putProfile = async (req, res) => {
-    const { tokenCredential } = req;
-    if (!tokenCredential) {
+    const { decodedToken } = req;
+    if (!decodedToken) {
         return handleConvertResponse(res, 401, 'Invalid token');
     }
 
@@ -64,12 +82,6 @@ const putProfile = async (req, res) => {
         return handleConvertResponse(res, 500, 'Something went wrong');
     }
 };
-
-const getSecreteProfile = (req, res) => { };
-
-const postSecretProfile = (req, res) => { };
-
-const putSecretProfile = (req, res) => { };
 
 const postStory = async (req, res) => {
     const { tokenCredential } = req;
@@ -154,7 +166,6 @@ const deleteStory = async (req, res) => {
 };
 
 module.exports = {
-    getProfile, postProfile, putProfile,
-    getSecreteProfile, postSecretProfile, putSecretProfile,
-    deleteStory, postStory
+    getProfile, putProfile,
+    deleteStory, postStory, getUserProfile
 }

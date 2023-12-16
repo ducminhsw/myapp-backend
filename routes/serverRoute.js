@@ -10,33 +10,33 @@ const route = express.Router();
 route.use(verifyToken);
 
 // create server
-route.post('/new', createServer);
+route.post('/server', createServer);
 
 // middleware verify valid user send request and target server
 route.use(verifiedServerInfo);
 
 // delete server
-route.delete('/:serverId');
+route.delete('/');
 
 // get server info
-route.post('/:serverId', getServerInformation);
+route.post('/', getServerInformation);
 
 // edit server info
-route.put('/:serverId', editServerInformation);
+route.put('/', editServerInformation);
 
 // user request join server
-route.post('/:serverId/on', requestJoinServer);
+route.post('/on', requestJoinServer);
 
 // accept user join server
-route.post('/:serverId/:targetUserId/accept', acceptUserJoin);
+route.post('/accept', acceptUserJoin);
 
 // user leave server
-route.post('/:serverId/off', requestLeaveServer);
+route.post('/off', requestLeaveServer);
 
 // head of server resign
-route.post('/:serverId/resign', resignServerPosition);
+route.post('/resign', resignServerPosition);
 
 // remove user from server
-route.delete('/:serverId/:targetUserId', deleteUserInServer);
+route.delete('/server/target', deleteUserInServer);
 
 module.exports = route;
