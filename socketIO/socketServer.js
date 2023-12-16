@@ -70,14 +70,14 @@ const registerSocketServer = (server) => {
                     case 'local-send-ice':
                         if (peer.get(socketString) && message.data.ice)
                             peer.get(socketString)
-                                .addIceCandidate(new webrtc.RTCIceCandidate(message.data.ice))
+                                .addIceCandidate(message.data.ice)
                                 .catch(e => console.log('1:', e));;
                         break;
                     case 'ice-for-peer-transport':
                         const { uuid, ice } = message.data;
                         if (ice && uuid && consumeTransporter.get(uuid)) {
                             consumeTransporter.get(uuid)
-                                .addIceCandidate(new webrtc.RTCIceCandidate(ice))
+                                .addIceCandidate(ice)
                                 .catch(e => console.log('2:', e));
                         }
                         break;
@@ -98,7 +98,7 @@ const registerSocketServer = (server) => {
                                 socket.emit(clientEmitter, icePayload);
                             }
                         }
-                        await peer.get(socketString).setRemoteDescription(new webrtc.RTCSessionDescription(offer));
+                        await peer.get(socketString).setRemoteDescription(offer);
                         const answer = await peer.get(socketString).createAnswer();
                         await peer.get(socketString).setLocalDescription(answer);
                         const answerPayload = {
@@ -131,7 +131,7 @@ const registerSocketServer = (server) => {
                         streamTransport.get(peerId).getTracks().forEach((track) => {
                             consumeTransporter.get(randomUuid).addTrack(track, streamTransport.get(peerId));
                         });
-                        await consumeTransporter.get(randomUuid).setRemoteDescription(new webrtc.RTCSessionDescription(offerRemoteStream));
+                        await consumeTransporter.get(randomUuid).setRemoteDescription(offerRemoteStream);
                         const answerConsumerTransport = await consumeTransporter.get(randomUuid).createAnswer();
                         await consumeTransporter.get(randomUuid).setLocalDescription(answerConsumerTransport);
 
