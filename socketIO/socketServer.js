@@ -121,7 +121,6 @@ const registerSocketServer = (server) => {
                         socket.emit(clientEmitter, peersPayload);
                         break;
                     case 'send-offer-for-peer-stream':
-                        // socket.join('main-room');
                         const offerRemoteStream = message.data.offer;
                         const randomUuid = message.data.uuid;
                         const peerId = message.data.peerId;
