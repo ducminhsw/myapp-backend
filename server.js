@@ -35,6 +35,6 @@ const options = {
     cert: fs.readFileSync('./ssl/cert.pem', 'utf-8')
 }
 
-const server = http.createServer(options, app);
+const server = https.createServer(options, app);
 socketServer.registerSocketServer(server);
 mongoConnector.mongooseConnector(server, port);
