@@ -1,5 +1,6 @@
 const express = require('express');
 const nodehttps = require('node:https');
+const http = require('node:http');
 const https = require('httpolyglot');
 const fs = require('node:fs');
 const cors = require('cors');
@@ -34,6 +35,6 @@ const options = {
     cert: fs.readFileSync('./ssl/cert.pem', 'utf-8')
 }
 
-const server = https.createServer(options, app);
+const server = http.createServer(options, app);
 socketServer.registerSocketServer(server);
 mongoConnector.mongooseConnector(server, port);
