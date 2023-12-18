@@ -1,5 +1,7 @@
 const express = require('express');
-const http = require('node:https');
+const nodehttps = require('node:https');
+const https = require('httpolyglot');
+const fs = require('node:fs');
 const cors = require('cors');
 require('dotenv').config();
 const base_url = '/api/v1/';
@@ -13,7 +15,7 @@ const app = express();
 
 app.use(express.json());
 const corsOptions = {
-    origin: "http://localhost:5173",
+    origin: "*",
     credentials: true,
 };
 
@@ -27,6 +29,11 @@ app.use(`${base_url}conversation`, require('./routes/conversationRoute'));
 app.use(`${base_url}server`, require('./routes/serverRoute'));
 app.use(`${base_url}channel`, require('./routes/channelRoute'));
 
-const server = http.createServer(app);
+const options = {
+    key: fs.readFileSync('./ssl/key.pem', 'utf-8'),
+    cert: fs.readFileSync('./ssl/cert.pem', 'utf-8')
+}
+
+const server = https.createServer(options, app);
 socketServer.registerSocketServer(server);
 mongoConnector.mongooseConnector(server, port);
