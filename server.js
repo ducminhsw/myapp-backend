@@ -1,6 +1,7 @@
 const express = require('express');
-const http = require('node:https');
+const http = require('http');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 const base_url = '/api/v1/';
 
@@ -10,14 +11,13 @@ const mongoConnector = require('./database/mongo-access');
 const port = process.env.PORT;
 
 const app = express();
-
 app.use(express.json());
-const corsOptions = {
-    origin: "http://localhost:5173",
-    credentials: true,
-};
-
-app.use(cors(corsOptions));
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
 
 app.use(`${base_url}auth`, require('./routes/authRoute'));
 app.use(`${base_url}admin`, require('./routes/adminRoute'));

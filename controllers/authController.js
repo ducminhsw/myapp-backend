@@ -7,52 +7,59 @@ const { configJwtSignObject } = require('../middlewares/authMiddleware');
 
 const saltRounds = process.env.SALT_ROUNDS;
 
+const generateAccessToken = (user) => {
+    const token = jwt.sign(
+        configJwtSignObject(user),
+        process.env.TOKEN_KEY,
+        {
+            expiresIn: '30s'
+        });
+
+    return token;
+}
+
+const generateRefreshToken = (user) => {
+    const token = jwt.sign(
+        configJwtSignObject(user),
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: '365d'
+        });
+
+    return token;
+}
+
 const register = async (req, res) => {
     try {
-        const { username, password, email } = req.body;
+        const { username, password, email, displayName, dateOfBirth } = req.body;
         // check if user exists
-        const userExists = await User.exists({ email: email, username: username });
+        const userExists = await User.exists({ email: email });
         if (userExists) {
             return serverConflictError(res);
         }
 
         // check passport
-        return bcrypt.hash(password, Number(saltRounds), async (err, hashPassword) => {
+        bcrypt.hash(password, Number(saltRounds), async (err, hashPassword) => {
             if (err) {
                 console.log(err);
                 return serverConflictError(res);
             }
-            const { firstName, lastName, dateOfBirth } = req.body;
             const userObj = {
                 role: 'user',
-                email: email,
-                username: username,
-                firstName: firstName,
-                lastName: lastName,
-                hashPassword: hashPassword,
-                verified: true,
-                dateOfBirth: dateOfBirth,
-                underServer: [],
-                headOfSever: [],
-                stories: [],
-                friends: []
+                email,
+                username,
+                displayName,
+                dateOfBirth,
+                hashPassword,
             }
             const user = await User.create(userObj);
 
             await user.save();
 
-            // create jwt token
-            const token = jwt.sign(
-                configJwtSignObject(user),
-                process.env.TOKEN_KEY,
-                {
-                    expiresIn: '24h'
-                });
+            delete userObj.password;
 
-            delete userObj.hashPassword;
-            return handleConvertResponse(res, 201, "Create user success", {
+            return handleConvertResponse(res, 200, "Create user success", {
                 userCredentials: userObj,
-                token
             });
         });
     } catch (error) {
@@ -72,36 +79,38 @@ const login = async (req, res) => {
         if (!match) return serverConflictError(res);
 
         // create login token
-        try {
-            const token = jwt.sign(
-                configJwtSignObject(userExists),
-                process.env.TOKEN_KEY,
-                {
-                    expiresIn: '24h'
-                });
-            return res.status(200).send(handleResponse(200, 'Login success.',
-                {
-                    userCredentials: {
-                        role: userExists.role,
-                        userId: userExists._id,
-                        email: userExists.email,
-                        username: userExists.username,
-                        firstName: userExists.firstName,
-                        lastName: userExists.lastName,
-                        avatar: userExists.avatar,
-                        friends: userExists.friends,
-                        phoneNumber: userExists.phoneNumber,
-                        underServer: userExists.underServer,
-                        headOfSever: userExists.headOfSever,
-                        dateOfBirth: userExists.dateOfBirth,
-                        storyNow: userExists.storyNow,
-                        stories: userExists.stories,
-                        token: token
-                    }
-                }));
-        } catch (error) {
-            return serverErrorResponse(res);
-        }
+        const token = generateAccessToken(userExists);
+        const refreshToken = generateRefreshToken(userExists);
+        res.cookie('access_token', token, {
+            maxAge: 365 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            // secure:true
+        })
+        res.cookie('refresh_token', refreshToken, {
+            maxAge: 365 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            // secure:true
+        })
+        return res.status(200).send(handleResponse(200, 'Login success.',
+            {
+                userCredentials: {
+                    role: userExists.role,
+                    userId: userExists._id,
+                    email: userExists.email,
+                    username: userExists.username,
+                    firstName: userExists.firstName,
+                    lastName: userExists.lastName,
+                    avatar: userExists.avatar,
+                    friends: userExists.friends,
+                    phoneNumber: userExists.phoneNumber,
+                    underServer: userExists.underServer,
+                    headOfSever: userExists.headOfSever,
+                    dateOfBirth: userExists.dateOfBirth,
+                    storyNow: userExists.storyNow,
+                    stories: userExists.stories,
+                }
+            }));
+
     } catch (error) {
         return serverErrorResponse(res);
     }
@@ -150,10 +159,20 @@ const deleteAccount = async (req, res) => {
     }
 }
 
+const refreshToken = (req, res) => {
+    const token = generateAccessToken(req.decodedToken);
+    res.cookie('access_token', token, {
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        // secure:true
+    })
+    return handleConvertResponse(res, 200, 'Refresh token success', { token: token });
+}
+
 // change password
 const changePassword = (req, res) => { };
 
 // request password after forgot password
 const requestPassword = (req, res) => { };
 
-module.exports = { login, register, verifyAccount, deleteAccount, changePassword, requestPassword }
+module.exports = { login, register, verifyAccount, deleteAccount, changePassword, requestPassword, refreshToken }
