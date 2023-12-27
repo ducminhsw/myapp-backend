@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const { createEmailTransport } = require('./libs/nodemailer/connectTransport')
 require('dotenv').config();
 const base_url = '/api/v1/';
 
@@ -27,6 +28,7 @@ app.use(`${base_url}conversation`, require('./routes/conversationRoute'));
 app.use(`${base_url}server`, require('./routes/serverRoute'));
 app.use(`${base_url}channel`, require('./routes/channelRoute'));
 
+createEmailTransport();
 const server = http.createServer(app);
 socketServer.registerSocketServer(server);
 mongoConnector.mongooseConnector(server, port);
