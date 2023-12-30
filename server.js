@@ -1,9 +1,8 @@
 const express = require('express');
-const nodehttps = require('node:https');
-const http = require('node:http');
-const https = require('httpolyglot');
-const fs = require('node:fs');
+const http = require('http');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const { createEmailTransport } = require('./libs/nodemailer/connectTransport')
 require('dotenv').config();
 const base_url = '/api/v1/';
 
@@ -13,14 +12,13 @@ const mongoConnector = require('./database/mongo-access');
 const port = process.env.PORT;
 
 const app = express();
-
 app.use(express.json());
-const corsOptions = {
-    origin: "*",
-    credentials: true,
-};
-
-app.use(cors(corsOptions));
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
 
 app.use(`${base_url}auth`, require('./routes/authRoute'));
 app.use(`${base_url}admin`, require('./routes/adminRoute'));
@@ -35,6 +33,7 @@ const options = {
     cert: fs.readFileSync('./ssl/cert.pem', 'utf-8')
 }
 
-const server = https.createServer(options, app);
+createEmailTransport();
+const server = http.createServer(app);
 socketServer.registerSocketServer(server);
 mongoConnector.mongooseConnector(server, port);

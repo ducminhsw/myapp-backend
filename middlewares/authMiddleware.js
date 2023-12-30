@@ -1,50 +1,56 @@
 const jwt = require("jsonwebtoken");
 const { handleResponse, serverErrorResponse } = require("../utils/utilsfunc");
 
-const config = process.env;
+const blackList = [];
 
-const verifyToken = (req, res, next) => {
-    let token = req.body.token || req.query.token || req.header["authorization"];
+const verifyToken = (isRefreshToken) => {
 
-    // check the token
-    if (!token || typeof token !== 'string') {
-        return res.status(403).send(handleResponse(403, "Invalid token"));
-    }
+    return (req, res, next) => {
 
-    // get the credential out of the token
-    try {
-        token = token.replace(/^Bearer\s+/, "");
-        jwt.verify(token, config.TOKEN_KEY, function (err, decodedToken) {
-            if (err) {
-                console.log(err);
-                return;
-            }
-            console.log('decodedToken', decodedToken);
+        let token = isRefreshToken ? req.cookies.refresh_token : req.cookies.access_token;
 
-            if (!decodedToken) {
-                return res.status(401).send(401, "Not authenticated.");
-            }
+        // check the token
+        if (!token || typeof token !== 'string') {
+            return res.status(403).send(handleResponse(403, "Unauthorize"));
+        }
 
-            try {
+
+        // get the credential out of the token
+        try {
+            token = token.replace(/^Bearer\s+/, "");
+            jwt.verify(token, isRefreshToken ? process.env.REFRESH_TOKEN_SECRET : process.env.TOKEN_KEY, function (err, decodedToken) {
+                if (err) {
+                    if (err.message === "jwt expired") {
+
+                        if (isRefreshToken) return res.status(403).send(handleResponse(403, "Unauthorize"));
+
+                        return res.status(401).send(handleResponse(401, "Not Authenticated"));
+                    }
+
+                    if (err.message === "invalid token") {
+                        return res.status(401).send(handleResponse(401, "Invalid Token"));
+                    }
+                }
+
+                if (blackList.includes(token)) {
+                    return res.status(403).send(handleResponse(403, "Unauthorize"));
+                }
+
                 req.decodedToken = decodedToken;
                 next();
-            } catch (error) {
-                return serverErrorResponse(res);
-            }
-        });
-    } catch (error) {
-        return res.status(403).send(handleResponse(403, "Something went wrong."));
+            })
+        } catch (error) {
+            return res.status(403).send(handleResponse(403, "Something went wrong."));
+        }
+
     }
+
 };
 
 const configJwtSignObject = (user) => {
     const obj = {
         userId: user._id,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        verified: user.verified,
-        firstName: user.firstName,
-        lastName: user.lastName
+        role: user.role
     }
     return obj;
 }

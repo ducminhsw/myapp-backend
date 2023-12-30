@@ -6,20 +6,25 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
+    displayName: {
+        type: String,
+        required: true
+    },
     username: {
         type: String,
         required: true
     },
     firstName: {
         type: String,
-        required: true
+        default: ''
     },
     lastName: {
         type: String,
-        required: true
+        default: ''
     },
     avatar: {
-        type: String
+        type: String,
+        default: ''
     },
     email: {
         type: String,
@@ -27,7 +32,8 @@ const userSchema = new Schema({
         unique: true
     },
     phoneNumber: {
-        type: String
+        type: String,
+        default: ''
     },
     hashPassword: {
         type: String,
@@ -54,11 +60,12 @@ const userSchema = new Schema({
         }
     }],
     dateOfBirth: {
-        type: String
+        type: String,
+        default: ''
     },
     verified: {
         type: Boolean,
-        required: true
+        default: false
     },
     storyNow: {
         content: { type: String, default: "" },
@@ -66,11 +73,25 @@ const userSchema = new Schema({
     },
     stories: [{
         story: {
-            type: String
+            type: String,
+            default: ''
         }
+    }],
+    online: {
+        type: Boolean,
+        default: false
+    },
+    offline: {
+        type: Date,
+        default: Date.now
+    },
+    usersBlocked: [{
+        type: Schema.Types.ObjectId,
+        ref: 'user'
     }],
     banned: {
         type: Boolean,
+        default: false
     },
     friends: [{
         user: {
