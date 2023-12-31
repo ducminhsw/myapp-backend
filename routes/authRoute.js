@@ -9,8 +9,6 @@ route.post('/login', login);
 route.post('/refreshToken', verifyToken('refreshToken'), refreshToken)
 
 route.use(verifyToken());
-
-// route.post('/verifyAccount', verifyAccount);
 route.delete('/account', deleteAccount);
 
 module.exports = route;

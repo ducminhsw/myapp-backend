@@ -7,8 +7,6 @@ route.post('/start')
 // GET list message
 route.get('/list/:block')
 
-// 
-
 // PUT update information a conversation
 route.put('/update')
 

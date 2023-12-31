@@ -10,19 +10,19 @@ const route = express.Router();
 route.use(verifyToken);
 
 // create server
-route.post('/server', createServer);
+route.post('/new', createServer);
 
 // middleware verify valid user send request and target server
 route.use(verifiedServerInfo);
 
 // delete server
-route.delete('/');
+route.delete('/delete');
 
 // get server info
-route.post('/', getServerInformation);
+route.post('/info', getServerInformation);
 
 // edit server info
-route.put('/', editServerInformation);
+route.put('/put', editServerInformation);
 
 // user request join server
 route.post('/on', requestJoinServer);
@@ -37,6 +37,6 @@ route.post('/off', requestLeaveServer);
 route.post('/resign', resignServerPosition);
 
 // remove user from server
-route.delete('/server/target', deleteUserInServer);
+route.delete('/target', deleteUserInServer);
 
 module.exports = route;
