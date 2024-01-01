@@ -56,7 +56,7 @@ const getRotationRefreshToken = (res, user) => {
 const verifyAccessToken = (req, res, next) => {
     try {
         const accessToken = req.headers.authorization;
-        if (!accessToken) return res.status(406).send({ message: "Unauthorized" });
+        if (!accessToken) return res.status(406).send({ message: "Unauthorized: Please add your headers right" });
         jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET_MINHND52, async (err, decodedAccessToken) => {
             if (err) {
                 switch (err.name) {
@@ -64,15 +64,21 @@ const verifyAccessToken = (req, res, next) => {
                         if (err.message === "jwt expired") {
                             const refreshToken = req.cookies["refresh_token"];
                             jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET_MINHND52, async (err, refresh_decoded) => {
-                                if (err) return handleConvertResponse(res, 401, "Unauthorized: Invalid refresh token");
-                                const { email } = req.body;
-                                const user = await User.findOne({ email });
-                                if (!user) return handleConvertResponse(res, 404, "Unknown target user");
-                                if (user._id !== refresh_decoded.userId) return handleConvertResponse(res, 404, "Unknown target user");
-                                const new_access = generateAccessToken(user);
-                                // if need a new access token, generate immediately
-                                req.newAccessToken = new_access;
-                                next();
+                                if (!err || err.message === "jwt expired") {
+                                    const { email } = req.body;
+
+                                    const user = await User.findOne({ email });
+                                    if (!user) return handleConvertResponse(res, 404, "Unknown target user");
+                                    if (user._id !== refresh_decoded.userId) return handleConvertResponse(res, 404, "Unknown target user");
+
+                                    const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
+                                    if (err) return handleConvertResponse(res, 500, "Something went wrong");
+                                    user.jwtRefeshToken = refreshToken;
+                                    await user.save();
+                                    // if need a new access token, generate immediately
+                                    req.newAccessToken = accessToken;
+                                    next();
+                                }
                             });
                         }
                         break;

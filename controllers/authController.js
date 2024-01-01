@@ -131,13 +131,18 @@ const handleGetRefreshToken = async (req, res) => {
         const user = await User.findOne({ email: email, jwtRefeshToken: refresh_token });
         if (!user) return handleConvertResponse(res, 404, "Unknown target user");
 
-        jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET_MINHND52, (err, decoded) => { });
+        jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET_MINHND52, async (err, _) => {
+            if (err.message === "jwt expired") {
+                const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
+                if (err) return handleConvertResponse(res, 500, "Something went wrong");
+                user.jwtRefeshToken = refreshToken;
+                await user.save();
 
-        const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
-        if (err) return handleConvertResponse(res, 500, "Something went wrong");
-        console.log(refreshToken);
-
-        return handleConvertResponse(res, 200, "Create new refresh token success", { token: accessToken });
+                return handleConvertResponse(res, 200, "Create new refresh token success", { token: accessToken });
+            } else {
+                return handleConvertResponse(res, 403, "Unauthorization: You don't have permission to do this action");
+            }
+        });
     } catch (error) {
         return handleConvertResponse(res, 500, "Something went wrong");
     }
