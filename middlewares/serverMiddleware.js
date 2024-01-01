@@ -2,7 +2,7 @@ const Server = require("../models/server");
 const User = require("../models/user");
 const { serverErrorResponse } = require("../utils/utilsfunc");
 
-const verifiedServerInfo = async (req, res, next) => {
+const verifiedTargetServer = async (req, res, next) => {
     const { userId, serverId } = req.body;
 
     if (!userId || typeof userId !== 'string') {
@@ -46,4 +46,4 @@ const verifiedServerInfo = async (req, res, next) => {
     }
 }
 
-module.exports = { verifiedServerInfo };
+module.exports = { verifiedTargetServer };

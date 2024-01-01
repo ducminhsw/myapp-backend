@@ -1,14 +1,11 @@
 const express = require('express');
 const route = express.Router();
-const { register, login, deleteAccount, refreshToken, sendMailToConfirmRegister } = require('../controllers/authController');
-const { verifyToken } = require('../middlewares/authMiddleware');
+const { register, login, verifyCodeFromEmail, handleGetRefreshToken } = require('../controllers/authController');
+const { sendMailToConfirmRegister } = require('../middlewares/authMiddleware');
 
-route.post('/register', register);
-route.post('/verifyEmail', sendMailToConfirmRegister)
+route.post('/register', sendMailToConfirmRegister, register);
+route.post('/verifyEmail', verifyCodeFromEmail);
 route.post('/login', login);
-route.post('/refreshToken', verifyToken('refreshToken'), refreshToken)
-
-route.use(verifyToken());
-route.delete('/account', deleteAccount);
+route.post('/refresh', handleGetRefreshToken);
 
 module.exports = route;

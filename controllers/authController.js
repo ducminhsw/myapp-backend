@@ -2,69 +2,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
-const { handleResponse, invalidParameterErrorResponse, handleConvertResponse, serverErrorResponse, serverConflictError } = require('../utils/utilsfunc');
-const { configJwtSignObject } = require('../middlewares/authMiddleware');
-
-const generateAccessToken = (user) => {
-    const token = jwt.sign(
-        configJwtSignObject(user),
-        process.env.TOKEN_KEY,
-        {
-            expiresIn: '30s'
-        });
-
-    return token;
-}
-
-const generateRefreshToken = (user) => {
-    const token = jwt.sign(
-        configJwtSignObject(user),
-        process.env.REFRESH_TOKEN_SECRET,
-        {
-            expiresIn: '365d'
-        });
-
-    return token;
-}
-
-
-const sendMail = async (mailOptions) => {
-    return await _transporter.sendMail(mailOptions);
-}
-
-const sendMailToConfirmRegister = async (req, res) => {
-
-    try {
-        const { confirmCode, email } = req.body
-
-        if (confirmCode.toString().length !== 6) return res.tatus(400).json("Code is invalid")
-
-        const mailOptions = {
-            from: 'norediscord86@gmail.com',
-            to: email,
-            subject: 'Confirmation Code',
-            html: ` 
-            <div style="width:100%">
-            <p>Here is your confirmation code please go back to your site and enter this code to complete the register process: </p>
-                <div style="font-size:25px;text-align:center;background-color:lightblue">
-                    <p>
-                        <b>${confirmCode}</b>
-                    </p>
-                </div>    
-            </div>
-            `
-        }
-
-        // Send the email
-        const mailResponse = await sendMail(mailOptions);
-        if (mailResponse.response.match(/[OK]/g)) {
-            res.status(200).json('Send confirmation code sucessfully')
-        }
-    } catch (error) {
-        serverErrorResponse(error)
-    }
-
-}
+const { handleResponse, invalidParameterErrorResponse, handleConvertResponse, serverErrorResponse, serverConflictError, generateRandom6Number } = require('../utils/utilsfunc');
+const { getRotationRefreshToken } = require('../middlewares/authMiddleware');
 
 const register = async (req, res) => {
     try {
@@ -88,15 +27,17 @@ const register = async (req, res) => {
                 displayName,
                 dateOfBirth,
                 hashPassword,
+                codeVerify: req.confirmCode
             }
             const user = await User.create(userObj);
 
             await user.save();
 
-            delete userObj.password;
+            delete userObj.hashPassword;
+            delete userObj.codeVerify;
 
             return handleConvertResponse(res, 200, "Create user success", {
-                userCredentials: userObj,
+                userBasicInfo: userObj,
             });
         });
     } catch (error) {
@@ -104,32 +45,59 @@ const register = async (req, res) => {
     }
 };
 
+const verifyCodeFromEmail = async (req, res) => {
+    try {
+        const { confirmCode, email } = req.body;
+
+        if (!confirmCode || typeof confirmCode !== "string" || confirmCode.length !== 6) {
+            return invalidParameterErrorResponse(res);
+        }
+
+        if (!email || typeof email !== "string") {
+            return invalidParameterErrorResponse(res);
+        }
+
+        const user = await User.findOne({ email: email });
+
+        if (!user) {
+            return serverConflictError(res);
+        }
+
+        if (user.verified) {
+            return serverConflictError(res);
+        }
+
+        if (user.codeVerify !== confirmCode) {
+            return serverConflictError(res);
+        }
+
+        user.verified = true;
+        await user.save();
+
+        return handleConvertResponse(res);
+    } catch (error) {
+        return serverErrorResponse(res);
+    }
+}
+
 const login = async (req, res) => {
     const { email, password } = req.body;
     try {
         // check if user exists
         const userExists = await User.findOne({ email: email });
         if (!userExists) return serverConflictError(res);
-
         // check if password is match
         const match = await bcrypt.compare(password, userExists.hashPassword);
         if (!match) return serverConflictError(res);
 
-        const token = generateAccessToken(userExists);
-        const refreshToken = generateRefreshToken(userExists);
-        res.cookie('access_token', token, {
-            maxAge: 365 * 24 * 60 * 60 * 1000,
-            httpOnly: true,
-            // secure:true
-        })
-        res.cookie('refresh_token', refreshToken, {
-            maxAge: 365 * 24 * 60 * 60 * 1000,
-            httpOnly: true,
-            // secure:true
-        })
+        // check if user is verified
+        if (!userExists.verified) return serverConflictError(res);
+
+        getRotationRefreshToken(res, userExists);
+
         return res.status(200).send(handleResponse(200, 'Login success.',
             {
-                userCredentials: {
+                userBasicInfo: {
                     role: userExists.role,
                     userId: userExists._id,
                     email: userExists.email,
@@ -146,69 +114,33 @@ const login = async (req, res) => {
                     stories: userExists.stories,
                 }
             }));
-
     } catch (error) {
         return serverErrorResponse(res);
     }
 };
 
-// verify account after register
-// const verifyAccount = async (req, res) => {
-//     const { email } = req.body;
-
-//     if (typeof email !== 'string') {
-//         return res.status(401).send(handleResponse(401, "Invalid authentication input."));
-//     }
-
-//     const user = await User.findOne({ email: email });
-
-//     if (!user) {
-//         return res.status(401).send(handleResponse(401, "User does not exists."));
-//     }
-
-//     try {
-//         user.verified = true;
-//         await user.save();
-//         return handleConvertResponse(res);
-//     } catch (error) {
-//         console.log(error);
-//         return serverErrorResponse(res);
-//     }
-// };
-
-const deleteAccount = async (req, res) => {
-    const { email } = req.body;
-    if (!email || typeof email !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    const user = await User.findOne({ email: email });
-    if (!user) {
-        return invalidParameterErrorResponse(res);
-    }
-
+// refresh token rotation
+const handleGetRefreshToken = async (req, res) => {
     try {
-        const deletedUser = await User.deleteOne(user);
-        return handleConvertResponse(res, 202, deletedUser);
+        const refresh_token = req.cookies["refresh_token"];
+        const { email } = req.body;
+
+        if (!email || typeof email !== "string") return handleConvertResponse(res, 400, "Error: Invalid parameters");
+        if (!refresh_token || typeof refresh_token !== "string") return handleConvertResponse(res, 400, "Error: Invalid parameters");
+
+        const user = await User.findOne({ email: email, jwtRefeshToken: refresh_token });
+        if (!user) return handleConvertResponse(res, 404, "Unknown target user");
+
+        jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET_MINHND52, (err, decoded) => { });
+
+        const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
+        if (err) return handleConvertResponse(res, 500, "Something went wrong");
+        console.log(refreshToken);
+
+        return handleConvertResponse(res, 200, "Create new refresh token success", { token: accessToken });
     } catch (error) {
-        return serverErrorResponse(res);
+        return handleConvertResponse(res, 500, "Something went wrong");
     }
 }
 
-const refreshToken = (req, res) => {
-    const token = generateAccessToken(req.decodedToken);
-    res.cookie('access_token', token, {
-        maxAge: 365 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        // secure:true
-    })
-    return handleConvertResponse(res, 200, 'Refresh token success', { token: token });
-}
-
-// change password
-const changePassword = (req, res) => { };
-
-// request password after forgot password
-const requestPassword = (req, res) => { };
-
-module.exports = { login, register, deleteAccount, changePassword, requestPassword, refreshToken, sendMailToConfirmRegister }
+module.exports = { login, register, handleGetRefreshToken, verifyCodeFromEmail }

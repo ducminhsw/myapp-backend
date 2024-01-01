@@ -4,9 +4,6 @@ const route = express.Router();
 const { getProfile, putProfile, postStory, deleteStory, getUserProfile } = require('../controllers/myselfController');
 const { verifyToken } = require('../middlewares/authMiddleware');
 
-// verify token
-route.use(verifyToken);
-
 // get user profile
 route.route('/profile/me')
     .post(getUserProfile);

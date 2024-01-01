@@ -67,6 +67,10 @@ const userSchema = new Schema({
         type: Boolean,
         default: false
     },
+    codeVerify: {
+        type: String,
+        default: "123456"
+    },
     storyNow: {
         content: { type: String, default: "" },
         dateOfStory: { type: Date, default: Date.now }
@@ -102,7 +106,11 @@ const userSchema = new Schema({
             type: Date,
             default: Date.now()
         }
-    }]
+    }],
+    jwtRefeshToken: {
+        type: String,
+        default: ''
+    }
 });
 
 const User = mongoose.model('user', userSchema);
