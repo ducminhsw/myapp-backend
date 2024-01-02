@@ -88,7 +88,7 @@ const verifyAccessToken = (req, res, next) => {
                                 user.jwtRefeshTokenList.push(refreshToken);
                                 await user.save();
                                 // if need a new access token, generate immediately
-                                req.newAccessToken = accessToken;
+                                req.headers.authorization = accessToken;
                                 next();
                             });
                         }
