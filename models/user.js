@@ -110,7 +110,11 @@ const userSchema = new Schema({
     jwtRefeshToken: {
         type: String,
         default: ''
-    }
+    },
+    jwtRefeshTokenList: [{
+        type: String,
+        default: ''
+    }]
 });
 
 const User = mongoose.model('user', userSchema);

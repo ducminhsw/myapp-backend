@@ -40,6 +40,7 @@ const getRotationRefreshToken = (res, user) => {
             maxAge: 365 * 24 * 60 * 60 * 1000,
             httpOnly: true
         });
+
         return {
             err: undefined,
             accessToken,
@@ -62,23 +63,33 @@ const verifyAccessToken = (req, res, next) => {
                 switch (err.name) {
                     case "TokenExpiredError":
                         if (err.message === "jwt expired") {
-                            const refreshToken = req.cookies["refresh_token"];
+                            const refreshTokenCookie = req.cookies["refresh_token"];
                             jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET_MINHND52, async (err, refresh_decoded) => {
-                                if (!err || err.message === "jwt expired") {
-                                    const { email } = req.body;
-
-                                    const user = await User.findOne({ email });
-                                    if (!user) return handleConvertResponse(res, 404, "Unknown target user");
-                                    if (user._id !== refresh_decoded.userId) return handleConvertResponse(res, 404, "Unknown target user");
-
-                                    const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
-                                    if (err) return handleConvertResponse(res, 500, "Something went wrong");
-                                    user.jwtRefeshToken = refreshToken;
-                                    await user.save();
-                                    // if need a new access token, generate immediately
-                                    req.newAccessToken = accessToken;
-                                    next();
+                                if (err) {
+                                    if (err.message === "jwt expired")
+                                        return handleConvertResponse(res, 401, "Your credentials are expired. Please log in again.");
+                                    return handleConvertResponse(res, 401, "Your credentials are broken. Please log in again.");
                                 }
+                                const { email } = req.body;
+                                const user = await User.findOne({ email });
+                                if (!user) return handleConvertResponse(res, 404, "Unknown target user");
+                                if (user._id !== refresh_decoded.userId) return handleConvertResponse(res, 404, "Unknown target user");
+                                if (user.jwtRefeshToken !== refreshTokenCookie && user.jwtRefeshTokenList.includes(refreshTokenCookie)) {
+                                    user.jwtRefeshToken = "";
+                                    user.jwtRefeshTokenList = [];
+                                    await user.save();
+                                    res.clearCookie("refresh_token");
+                                    return handleConvertResponse(res, 401, "Opps. Your credentials are blocked. Please log in again.");
+                                }
+
+                                const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
+                                if (err) return handleConvertResponse(res, 500, "Something went wrong");
+                                user.jwtRefeshToken = refreshToken;
+                                user.jwtRefeshTokenList.push(refreshToken);
+                                await user.save();
+                                // if need a new access token, generate immediately
+                                req.newAccessToken = accessToken;
+                                next();
                             });
                         }
                         break;

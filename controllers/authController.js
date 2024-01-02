@@ -84,42 +84,68 @@ const login = async (req, res) => {
     const { email, password } = req.body;
     try {
         // check if user exists
-        const userExists = await User.findOne({ email: email });
-        if (!userExists) return serverConflictError(res);
+        const user = await User.findOne({ email: email });
+        if (!user) return handleConvertResponse(res, 400, "There are no user match this authentication information");
         // check if password is match
-        const match = await bcrypt.compare(password, userExists.hashPassword);
-        if (!match) return serverConflictError(res);
+        const match = await bcrypt.compare(password, user.hashPassword);
+        if (!match) return handleConvertResponse(res, 401, "There are no user match this authentication information");
 
         // check if user is verified
-        if (!userExists.verified) return serverConflictError(res);
+        if (!user.verified) return handleConvertResponse(res, 401, "Can not log in. Verify your account first.");
 
-        getRotationRefreshToken(res, userExists);
+        const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
+        if (err) return handleConvertResponse(res, 401, "There are some problems with authentication");
+
+        user.jwtRefeshToken = refreshToken;
+        user.jwtRefeshTokenList.push(refreshToken);
+        await user.save();
 
         return res.status(200).send(handleResponse(200, 'Login success.',
             {
                 userBasicInfo: {
-                    role: userExists.role,
-                    userId: userExists._id,
-                    email: userExists.email,
-                    username: userExists.username,
-                    firstName: userExists.firstName,
-                    lastName: userExists.lastName,
-                    avatar: userExists.avatar,
-                    friends: userExists.friends,
-                    phoneNumber: userExists.phoneNumber,
-                    underServer: userExists.underServer,
-                    headOfSever: userExists.headOfSever,
-                    dateOfBirth: userExists.dateOfBirth,
-                    storyNow: userExists.storyNow,
-                    stories: userExists.stories,
-                }
+                    role: user.role,
+                    userId: user._id,
+                    email: user.email,
+                    username: user.username,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    avatar: user.avatar,
+                    friends: user.friends,
+                    phoneNumber: user.phoneNumber,
+                    underServer: user.underServer,
+                    headOfSever: user.headOfSever,
+                    dateOfBirth: user.dateOfBirth,
+                    storyNow: user.storyNow,
+                    stories: user.stories,
+                },
+                accessToken: accessToken
             }));
     } catch (error) {
-        return serverErrorResponse(res);
+        return handleConvertResponse(res, 500, "Something went wrong");
     }
 };
 
-// refresh token rotation
+const logout = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const refreshToken = req.cookies["refresh_token"];
+        const user = await User.findOne({ email, jwtRefeshToken: refreshToken });
+        if (!user) {
+            res.clearCookie("refresh_token");
+            return handleConvertResponse(res, 404, "Unknown target user");
+        }
+        user.jwtRefeshToken = "";
+        user.jwtRefeshTokenList = [];
+        await user.save();
+        res.clearCookie("refresh_token");
+        return handleConvertResponse(res, 204, "Logout success");
+    } catch (error) {
+        console.log(error);
+        return handleConvertResponse(res, 500, "Something went wrong")
+    }
+}
+
+// refresh token rotation (pending)
 const handleGetRefreshToken = async (req, res) => {
     try {
         const refresh_token = req.cookies["refresh_token"];
@@ -148,4 +174,4 @@ const handleGetRefreshToken = async (req, res) => {
     }
 }
 
-module.exports = { login, register, handleGetRefreshToken, verifyCodeFromEmail }
+module.exports = { login, logout, register, handleGetRefreshToken, verifyCodeFromEmail }
