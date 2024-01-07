@@ -1,38 +1,35 @@
 const express = require('express');
 const { createServer, getServerInformation, editServerInformation,
     requestJoinServer, requestLeaveServer, resignServerPosition,
-    deleteUserInServer, acceptUserJoin } = require('../controllers/serverController');
-const { verifyToken } = require('../middlewares/authMiddleware');
-const { verifiedTargetServer } = require('../middlewares/serverMiddleware');
+    deleteUserInServer, acceptUserJoin, createInvitation } = require('../controllers/serverController');
+const { verifyAccessToken } = require('../middlewares/authMiddleware');
+const { verifyUserWithServer } = require('../middlewares/serverMiddleware');
 const route = express.Router();
 
-// create server
-route.post('/create', createServer);
+// this already verify the user validation
+route.use(verifyAccessToken);
 
-// middleware verify valid user send request and target server
-route.use(verifiedTargetServer);
+route.post('/create-server', createServer);
+route.post('/create-initation', createInvitation)
 
-// admin/head of server deletes the server
-route.delete('/delete');
-// user gets server info
-route.post('/get', getServerInformation);
-// admin/head of server edits server info
-route.put('/put', editServerInformation);
+// verify server
+route.use(verifyUserWithServer)
+    .post('/get-server-info', getServerInformation)
+    .put('/edit-server-info', editServerInformation)
+    .delete('/delete-server');
 
-// admin/head of server creates new channel
-// admin/head of server deletes channel
-// admin/head of server edits channel's info
+route.post('/create-channel');
 
+// verify channel
+route.post('/get-channel-info');
+route.put('/edit-channel-info');
+route.delete('/delete-channel');
 
-// user makes request join server
+// verify admin/head of server
 route.post('/request-to-join', requestJoinServer);
-// admin accepts user join server
 route.post('/accept-join-request', acceptUserJoin);
-// user makes request to leave server
 route.post('/request-to-leave', requestLeaveServer);
-// head of the server resigns
 route.post('/head-user-resign', resignServerPosition);
-// admin/head of server removes user from server
 route.delete('/remove-user', deleteUserInServer);
 
 module.exports = route;

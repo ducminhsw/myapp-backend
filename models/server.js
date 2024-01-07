@@ -19,6 +19,7 @@ const serverSchema = new Schema({
     }],
     type: {
         type: Number,
+        default: SERVER_TYPE.PUBLIC,
         required: true
     },
     channels: {

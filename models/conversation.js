@@ -2,20 +2,12 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const conversationSchema = new Schema({
-    firstUser: {
+    firstUserId: {
         type: Schema.Types.ObjectId,
         required: true
     },
-    firstUserName: {
-        type: String,
-        required: true
-    },
-    secondUser: {
+    secondUserId: {
         type: Schema.Types.ObjectId,
-        required: true
-    },
-    secondUserName: {
-        type: String,
         required: true
     },
     message: [{

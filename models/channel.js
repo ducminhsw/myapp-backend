@@ -2,20 +2,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const channelSchema = new Schema({
-    channel_name: {
+    channelTitle: {
         type: String,
         required: true
     },
-    headOfChannel: [{
-        user: {
-            type: Schema.Types.ObjectId,
-            ref: 'user'
-        },
-        createAt: {
-            type: Date,
-            default: Date.now()
-        }
-    }],
     member: [{
         user: {
             type: Schema.Types.ObjectId,
@@ -26,7 +16,7 @@ const channelSchema = new Schema({
             default: Date.now()
         }
     }],
-    channel_type: {
+    channelType: {
         type: Number,
         required: true
     },

@@ -5,6 +5,7 @@ const User = require("../models/user");
 const configJwtSignObject = (user) => {
     const obj = {
         userId: user._id,
+        userName: user.username,
         role: user.role
     }
     return obj;
@@ -58,7 +59,7 @@ const verifyAccessToken = (req, res, next) => {
     try {
         const accessToken = req.headers.authorization;
         if (!accessToken) return res.status(406).send({ message: "Unauthorized: Please add your headers right" });
-        jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET_MINHND52, async (err, decodedAccessToken) => {
+        jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET_MINHND52, async (err, accessTokenDecoded) => {
             if (err) {
                 switch (err.name) {
                     case "TokenExpiredError":
@@ -74,18 +75,19 @@ const verifyAccessToken = (req, res, next) => {
                                 const user = await User.findOne({ email });
                                 if (!user) return handleConvertResponse(res, 404, "Unknown target user");
                                 if (user._id !== refresh_decoded.userId) return handleConvertResponse(res, 404, "Unknown target user");
-                                if (user.jwtRefeshToken !== refreshTokenCookie && user.jwtRefeshTokenList.includes(refreshTokenCookie)) {
+                                if (user.jwtRefeshToken !== refreshTokenCookie) {
+                                    //  && user.jwtRefeshTokenList.includes(refreshTokenCookie)
                                     user.jwtRefeshToken = "";
-                                    user.jwtRefeshTokenList = [];
+                                    // user.jwtRefeshTokenList = [];
                                     await user.save();
                                     res.clearCookie("refresh_token");
                                     return handleConvertResponse(res, 401, "Opps. Your credentials are blocked. Please log in again.");
                                 }
 
-                                const { err, accessToken, refreshToken } = getRotationRefreshToken(res, user);
-                                if (err) return handleConvertResponse(res, 500, "Something went wrong");
+                                const { err: refreshError, accessToken, refreshToken } = getRotationRefreshToken(res, user);
+                                if (refreshError) return handleConvertResponse(res, 500, "Something went wrong");
                                 user.jwtRefeshToken = refreshToken;
-                                user.jwtRefeshTokenList.push(refreshToken);
+                                // user.jwtRefeshTokenList.push(refreshToken);
                                 await user.save();
                                 // if need a new access token, generate immediately
                                 req.headers.authorization = accessToken;
@@ -100,7 +102,7 @@ const verifyAccessToken = (req, res, next) => {
                 const { email } = req.body;
                 const user = await User.findOne({ email });
                 if (!user) return handleConvertResponse(res, 404, "Unknown target user");
-                if (user._id !== decodedAccessToken.userId) return handleConvertResponse(res, 404, "Unknown target user");
+                if (user._id !== accessTokenDecoded.userId || user.username !== accessTokenDecoded.userName) return handleConvertResponse(res, 404, "Unknown target user");
                 next();
             }
         });

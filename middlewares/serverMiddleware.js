@@ -1,49 +1,82 @@
+const Channel = require("../models/channel");
 const Server = require("../models/server");
 const User = require("../models/user");
-const { serverErrorResponse } = require("../utils/utilsfunc");
+const { handleConvertResponse } = require("../utils/utilsfunc");
 
-const verifiedTargetServer = async (req, res, next) => {
-    const { userId, serverId } = req.body;
-
-    if (!userId || typeof userId !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    if (!serverId || typeof serverId !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    const user = await User.findById(userId, (err, userDoc) => {
-        if (err) {
-            return;
-        }
-        return userDoc;
-    });
-
-    if (!user) {
-        return invalidParameterErrorResponse(res, 404, 'Not found');
-    }
-
-    const server = await Server.findById(serverId, (err, serverDoc) => {
-        if (err) {
-            return;
-        }
-        return serverDoc;
-    }).populate('channels.chatChannel.channel')
-        .populate('channels.voiceChannel.channel')
-        .exec();
-
-    if (!server) {
-        return invalidParameterErrorResponse(res, 404, 'Not found.');
-    }
-
+const verifyUserWithServer = async (req, res, next) => {
     try {
-        req.serverMongo = server;
-        req.userRequest = user;
+        const { userId, serverId } = req.body;
+
+        if (!userId || typeof userId !== 'string') return handleConvertResponse(res, 400, "Error: Invalid user");
+        if (!serverId || typeof serverId !== 'string') return handleConvertResponse(res, 400, "Error: Invalid server");
+
+        const user = await User.findById(userId, (err, doc) => {
+            if (err) return undefined;
+            return doc;
+        });
+        if (!user) return handleConvertResponse(res, 400, "Error: Invalid user");
+
+        const server = await Server.findById(serverId, (err, doc) => {
+            if (err) return undefined;
+            return doc;
+        });
+        if (!server) return handleConvertResponse(res, 400, "Error: Invalid server");
+
+        await server.populate('channels.chatChannel.channel').populate('channels.voiceChannel.channel').exec();
+
+        req.verifiedServer = server;
+        req.verifiedUser = user;
+
         next();
     } catch (error) {
-        return serverErrorResponse(res);
+        return handleConvertResponse(res, 500, "Error: Something went wrong");
     }
 }
 
-module.exports = { verifiedTargetServer };
+const verifyUserMiddleware = async (req, res, next) => {
+    try {
+        const { userId } = req.body;
+        if (!userId || typeof userId !== "string") return handleConvertResponse(res, 400, "Error: Invalid user information");
+        const user = await User.findById(userId, (err, doc) => {
+            if (err) return undefined;
+            return doc;
+        });
+        if (!user) return handleConvertResponse(res, 400, "Error: Invalid server");
+        req.verifiedUser = user;
+        next();
+    } catch (error) {
+        console.log(error);
+        return handleConvertResponse(res, 500, "Error: Something went wrong");
+    }
+}
+
+const verifyServerMiddleware = async (req, res, next) => {
+    try {
+        const { serverId } = req.body;
+        if (!serverId || typeof serverId !== "string") return handleConvertResponse(res, 400, "Error: Invalid server information");
+        const server = await Server.findById(serverId, (err, doc) => {
+            if (err) return undefined;
+            return doc;
+        });
+        if (!server) return handleConvertResponse(res, 400, "Error: Invalid server");
+        req.verifiedServer = server;
+        next();
+    } catch (error) {
+        console.log(error);
+        return handleConvertResponse(res, 500, "Error: Something went wrong");
+    }
+}
+
+const verifyServerOwnerMiddleware = async (req, res, next) => {
+    try {
+        const { verifiedUser, verifiedServer } = req;
+        const headerIndex = verifiedServer.headOfServer.filter(item => item.user === verifiedUser._id);
+        if (headerIndex < 0) return handleConvertResponse(res, 403, "Error: You are not one of the head of the server");
+        next();
+    } catch (error) {
+        console.log(error);
+        return handleConvertResponse(res, 500, "Error: Something went wrong");
+    }
+}
+
+module.exports = { verifyUserWithServer, verifyUserMiddleware, verifyServerMiddleware, verifyServerOwnerMiddleware };

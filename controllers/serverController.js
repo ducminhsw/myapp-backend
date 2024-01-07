@@ -1,81 +1,116 @@
 const Channel = require("../models/channel");
 const Server = require("../models/server");
 const User = require("../models/user");
-const { CHANNEL_TYPE, SERVER_TYPE } = require("../utils/contants");
+const jwt = require("jsonwebtoken");
+const { CHANNEL_TYPE, SERVER_TYPE, INVITATION_TYPE } = require("../utils/contants");
 const { handleConvertResponse, serverErrorResponse, unauthorizeErrorResponse,
     invalidParameterErrorResponse, notFoundErrorResponse, serverConflictError } = require("../utils/utilsfunc");
 
+// done/not tested
 const createServer = async (req, res) => {
-    const { userId, email, verified, typeServer } = req.body;
-    if (!userId || typeof userId !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    if (!email || typeof email !== 'string') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    if (!verified || typeof verified !== 'boolean') {
-        return handleConvertResponse(res, 401, 'User not verified, can not create a server.');
-    }
-
-    if (!typeServer || typeof typeServer !== 'number') {
-        return invalidParameterErrorResponse(res);
-    }
-
-    const user = await User.findOne({ _id: userId, email: email });
-    if (!user) {
-        return notFoundErrorResponse(res);
-    }
-
     try {
-        const newChatChannel = await Channel.create({
-            channel_name: 'general',
-            headOfChannel: [{
-                user: user._id
-            }],
+        const { email, serverTitle } = req.body;
+
+        if (!email || typeof email !== "string") return handleConvertResponse(res, 400, "Error: Invalid user's email");
+        if (!serverTitle || typeof serverTitle !== "string") return handleConvertResponse(res, 400, "Error: Invalid server's name");
+
+        const user = await User.findOne({ email });
+        if (!user) return handleConvertResponse(res, 404, "Error: Invalid user");
+
+        const defaultChatChannel = await Channel.create({
+            channelTitle: "general",
             member: [],
-            channel_type: CHANNEL_TYPE.CHAT,
+            channelType: CHANNEL_TYPE.CHAT,
             messages: []
         });
 
-        const newVoiceChannel = await Channel.create({
-            channel_name: 'general',
-            headOfChannel: [{
-                user: user._id
-            }],
+        const defaultVoiceChannel = await Channel.create({
+            channelTitle: "General",
             member: [],
-            channel_type: CHANNEL_TYPE.CHAT,
+            channelType: CHANNEL_TYPE.VOICE,
             messages: []
         });
 
         const server = await Server.create({
-            title: 'server',
-            headOfServer: [{
-                user: user._id
-            }],
-            type: typeServer,
+            title: serverTitle,
+            headOfServer: user._id,
             channels: {
-                chatChannel: [newChatChannel._id],
-                voiceChannel: [newVoiceChannel._id]
+                chatChannel: [defaultChatChannel._id],
+                voiceChannel: [defaultVoiceChannel._id]
             },
-            admin: [],
             participants: [],
             joinRequest: [],
             muted: [],
-            banned: []
+            banned: [],
         });
 
-        return handleConvertResponse(res, 201, "Create server successfully.",
-            await server.populate('channels.chatChannel.channel')
-                .populate('channels.voiceChannel.channel')
-                .exec());
+        return handleConvertResponse(res, 201, "Success: Create new server successfully", server);
     } catch (error) {
         console.log(error);
-        return serverErrorResponse(res);
+        return handleConvertResponse(res, 500, "Error: Something went wrong", error);
     }
 }
 
+// done/not tested
+const createInvitation = (req, res) => {
+    try {
+        const { verifiedUser, verifiedServer } = req;
+        const userIndex = verifiedServer.participants.filter(item => item.user === verifiedUser);
+        if (userIndex >= 0) {
+            const invitation = jwt.sign(`${INVITATION_TYPE.HEAD}/invitation/${verifiedServer._id}`, process.env.INVITATION_SECRET);
+            return handleConvertResponse(res, 201, "Success: Return invitation code success", invitation);
+        }
+
+        const headIndex = verifiedServer.headOfServer.filter(item => item.user === verifiedUser);
+        if (headIndex >= 0) {
+            const invitation = jwt.sign(`${INVITATION_TYPE.PARTICIPANT}/invitation/${verifiedServer._id}`, process.env.INVITATION_SECRET);
+            return handleConvertResponse(res, 201, "Success: Return invitation code success", invitation);
+        }
+        return handleConvertResponse(res, 403, "Error: You can not make this action");
+    } catch (error) {
+        console.log(error);
+        return handleConvertResponse(res, 500, "Error: Something went wrong", error);
+    }
+}
+
+// done/not tested
+const enterServerWithInvitation = (req, res) => {
+    try {
+        const { invitationCode, userId } = req.body;
+        jwt.verify(invitationCode, process.env.INVITATION_SECRET, async (err, invitation) => {
+            if (err) return handleConvertResponse(res, 500, "Error: Something went wrong", err);
+            const [type, _, targetServerId] = invitation.split("/");
+            if (type === INVITATION_TYPE.HEAD) {
+                const targetServer = await Server.findById(targetServerId, (err, doc) => {
+                    if (err) return undefined;
+                    return doc;
+                });
+                if (!targetServer) return handleConvertResponse(res, 404, "Error: Server not found", err);
+                targetServer.participants.push({ user: userId, createAt: Date.now() });
+                await targetServer.save();
+                return handleConvertResponse(res, 201, "Success: Enter server success");
+            }
+
+            if (type === INVITATION_TYPE.PARTICIPANT) {
+                const targetServer = await Server.findById(targetServerId, (err, doc) => {
+                    if (err) return undefined;
+                    return doc;
+                });
+                if (!targetServer) return handleConvertResponse(res, 404, "Error: Server not found", err);
+                targetServer.joinRequest.push({ user: userId, createAt: Date.now() });
+                await targetServer.save();
+                return handleConvertResponse(res, 201, "Success: Waiting for approval");
+            }
+
+            return handleConvertResponse(res, 403, "Error: You can not make this action");
+        })
+    } catch (error) {
+        console.log(error);
+        return handleConvertResponse(res, 500, "Error: Something went wrong", error);
+    }
+}
+
+// working
 const getServerInformation = async (req, res) => {
     const { userRequest, serverMongo } = req;
 
@@ -258,5 +293,6 @@ const editServerInformation = async (req, res) => { }
 module.exports = {
     createServer, getServerInformation, requestJoinServer,
     editServerInformation, requestLeaveServer, resignServerPosition,
-    deleteUserInServer, acceptUserJoin
+    deleteUserInServer, acceptUserJoin, createInvitation,
+    enterServerWithInvitation
 };

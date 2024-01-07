@@ -2,9 +2,7 @@ const express = require('express');
 const route = express.Router();
 
 // GET all users
-route.get('/users/2', (req, res) => {
-    res.send({ message: "helleoeoeo" });
-});
+route.get('/users/2');
 
 // GET all banned users
 route.get('/users/0')
